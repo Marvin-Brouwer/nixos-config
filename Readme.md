@@ -38,21 +38,6 @@ For example, I just want to be able to run a `python`, whether python 2 or 3 is 
 
 ## Setup NixOS
 
-Edit (or create) ` ~/.config/nix/nix.conf`:
-
-```conf
-experimental-features = nix-command flakes
-``` 
-
-Reload the shell or start a new one.
-
-```bash
-nix profile install nixpkgs#nix-direnv
-# Add the hook to your shell rc (bash example):
-echo 'eval "$(nix-direnv)"' >> ~/.bashrc
-source ~/.bashrc
-```
-
 Clone this repo
 
 ```bash
@@ -61,48 +46,26 @@ nix-shell -p git
 # Clone your config
 git clone https://github.com/<your‑user>/nixos-config.git ~/nixos-config
 cd ~/nixos-config
-# Deploy the foundation configuration
-# This will create your user and set everything up
-sudo nixos-rebuild switch --flake .#main
 ```
 
-Make your interactive shell use ` ~/nixos-config/main.nix`:
+Run the setup:
 
 ```bash
-nix profile install nixpkgs#home-manager
+# Make the setup script executable
+chmod +x setup.sh
+# Run the setup script
+bash ./setup.sh
 ```
 
-Create a `home.nix` that imports the `~/nixos-config/main.nix`.
-Place it in `~/.config/nixpkgs/home.nix` (or any location you like).
+The script will:
 
-```nix
-# ~/.config/nixpkgs/home.nix
-{ pkgs, ... }:
+- Enable flakes in ~/.config/nix/nix.conf
+- Install nix-direnv and add the direnv hook to your shell rc
+- Install home-manager and create a minimal ~/.config/nixpkgs/home.nix that imports the shared main.nix
+- Generate hardware-configuration.nix (if missing)
+- Rebuild the WSL‑2 NixOS system (nixosConfigurations.wsl)
 
-let
-  # Pull the shared config from your central repo
-  shared = import ~/nixos-config/main.nix { inherit pkgs; };
-in {
-  # Packages that should be installed globally for your user
-  home.packages = shared.commonPackages;
-
-  # Environment variables (EDITOR, LANG, etc.)
-  home.sessionVariables = shared.env;
-
-  # Example: enable the Zsh module, set a theme, etc.
-  programs.zsh.enable = true;
-  programs.zsh.promptInit = ''
-    PROMPT='%F{green}%n@%m %F{blue}%~ %F{yellow}$ %f'
-  '';
-}
-```
-
-Activate
-
-```bash
-home-manager switch
-```
-
+After the script finishes, restart the WSL VM so the new system takes effect.  
 Exit WSL and reboot it from the windows terminal (`gitbash`/`cmd`,`pwsh`, shouldn't matter):
 
 ```bash

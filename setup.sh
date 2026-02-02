@@ -24,14 +24,14 @@ prompt_for_password() {
 
   while true; do
     read -rsp "Enter password for user '${user}': " pw1
-    echo ""
+    echo "\n"
     read -rsp "Confirm password: " pw2
-    echo ""
+    echo "\n"
     if [[ "$pw1" == "$pw2" && -n "$pw1" ]]; then
       echo "$pw1"
       return
     else
-      warn "Passwords do not match or are empty – try again."
+      warn "Passwords do not match or are empty – try again. \n"
     fi
   done
 }

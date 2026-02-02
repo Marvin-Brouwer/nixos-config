@@ -1,8 +1,8 @@
+# templates/vscode.nix
 { pkgs }:
 
 # -----------------------------------------------------------------
-# Base list of extensions that you want *every* profile to start with.
-# (You can keep this empty if you prefer a truly blank slate.)
+# Base list of extensions that all profiles inherit.
 # -----------------------------------------------------------------
 base = [
   pkgs.vscode-extensions.dbaeumer.vscode-eslint
@@ -11,6 +11,6 @@ base = [
 
 { extra ? [] }:
 
-vscodeWithExt = pkgs.vscode-with-extensions.override {
+pkgs.vscode-with-extensions.override {
   vscodeExtensions = base ++ extra;
-};
+}

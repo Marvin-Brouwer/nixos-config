@@ -26,7 +26,7 @@
         inherit system;
         modules = [
           ./configuration.nix    
-          ./hardware-configuration.nix        
+          # ./hardware-configuration.nix This is removed, NixOS-WSL solves this       
         ];
       };
       # Load profiles

@@ -23,7 +23,6 @@
     displayManager.sddm.enable = lib.mkForce false;     # no DM
     desktopManager.plasma6.enable = lib.mkForce false;
     pipewire.enable = lib.mkForce false;                # audio handled by Windows (wsl-host)
-    nix-daemon.enable = true;                           # enable the Nix daemon so `nix develop` works inside WSL
   };
   # Disable networking services unnecessary in WSL
   networking.wireless.enable = lib.mkForce false; # Disables wpa_supplicant

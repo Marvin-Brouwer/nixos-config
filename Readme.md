@@ -12,6 +12,8 @@ For example, I just want to be able to run a `python`, whether python 2 or 3 is 
 │       └─ nix.conf               # enable flakes, etcetera, here
 ├─ nixos-config/                   
 │   ├─ flake.nix                  # the entry point for the whole repo
+│   ├─ configuration.nix          # full NixOS system config (WSL‑2 VM)
+│   ├─ hardware-configuration.nix # hardware settings
 │   ├─ profiles/
 │   │   ├─ default/
 │   │   │   ├─ profile.nix        # generic shell (e.g. basic tools)

@@ -59,11 +59,11 @@ bash ./setup.sh
 
 The script will:
 
-- Enable flakes in ~/.config/nix/nix.conf
-- Install nix-direnv and add the direnv hook to your shell rc
-- Install home-manager and create a minimal ~/.config/nixpkgs/home.nix that imports the shared main.nix
-- Generate hardware-configuration.nix (if missing)
-- Rebuild the WSL‑2 NixOS system (nixosConfigurations.wsl)
+- Enable flakes in `~/.config/nix/nix.conf`
+- Install `nix-direnv` and add the `direnv` hook to your shell rc
+- Install `home-manager` and create a minimal `~/.config/nixpkgs/home.nix` that imports the shared `main.nix`
+- Generate `hardware-configuration.nix` (if missing)
+- Rebuild the WSL‑2 NixOS system (`nixosConfigurations.wsl`)
 
 After the script finishes, restart the WSL VM so the new system takes effect.  
 Exit WSL and reboot it from the windows terminal (`gitbash`/`cmd`,`pwsh`, shouldn't matter):

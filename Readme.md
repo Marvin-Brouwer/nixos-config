@@ -6,20 +6,32 @@ For example, I just want to be able to run a `python`, whether python 2 or 3 is 
 ## Structure
 
 ```txt
-nixos-config/
-├─ flake.nix                # the entry point for the whole repo
-├─ main.nix                 # shared system‑wide settings (optional)
-├─ profiles/
-│  ├─ default/
-│  │   └─ profile.nix       # generic shell (e.g. basic tools)
-│  └─ typescript/
-│      └─ profile.nix       # Node / TypeScript‑centric shell
-│  └─ csharp/
-│      └─ profile.nix       # C# shell
-│  └─ */
-│      └─ profile.nix       # Any additional shell
-│
-└─ .envrc                   # top‑level direnv hook
+~/
+├─ .config/
+│   └─ nix/
+│       └─ nix.conf               # enable flakes, etcetera, here
+├─ nixos-config/                   
+│   ├─ flake.nix                  # the entry point for the whole repo
+│   ├─ profiles/
+│   │   ├─ default/
+│   │   │   ├─ profile.nix        # generic shell (e.g. basic tools)
+│   │   ├─ typescript/
+│   │   │   ├─ profile.nix        # Node / TypeScript‑centric shell
+│   │   │   └─ vscode.nix         
+│   │   ├─ csharp/
+│   │   │   ├─ profile.nix        # C# shell
+│   │   │   └─ vscode.nix     
+│   │   └─ */
+│   │       ├─ profile.nix        # Any additional shell
+│   │       └─ vscode.nix
+│   └─ templates/
+│      ├─ profile.nix            # Extendable base configuration
+│      └─ vscode.nix             # Extendable vscode configuration
+└─ repos/
+    ├─ my‑first‑proj/
+    │   └─ .envrc                 # direnv hook (auto‑loads the right profile)
+    └─ another‑proj/
+        └─ .envrc                 # direnv hook (auto‑loads the right profile)
 ```
 
 ## Setup NixOS
@@ -52,16 +64,41 @@ cd ~/nixos-config
 sudo nixos-rebuild switch --flake .#main
 ```
 
-Make your interactive shell use ` ~/nixos-config/main.nix` by adding the following to your `~/.bashrc` (and/or `~/.zshrc`):
+Make your interactive shell use ` ~/nixos-config/main.nix`:
 
 ```bash
-# ~/.bashrc  (run once at the start of an interactive session)
-if [ -z "$IN_NIX_SHELL" ]; then
-  # Enter a temporary shell that contains the shared packages and env vars.
-  # The `--pure` flag makes sure we start from a clean environment,
-  # then we re‑inject the variables we actually want.
-  exec nix develop "$HOME/nixos-config#default" "$@"
-fi
+nix profile install nixpkgs#home-manager
+```
+
+Create a `home.nix` that imports the `~/nixos-config/main.nix`.
+Place it in `~/.config/nixpkgs/home.nix` (or any location you like).
+
+```nix
+# ~/.config/nixpkgs/home.nix
+{ pkgs, ... }:
+
+let
+  # Pull the shared config from your central repo
+  shared = import ~/nixos-config/main.nix { inherit pkgs; };
+in {
+  # Packages that should be installed globally for your user
+  home.packages = shared.commonPackages;
+
+  # Environment variables (EDITOR, LANG, etc.)
+  home.sessionVariables = shared.env;
+
+  # Example: enable the Zsh module, set a theme, etc.
+  programs.zsh.enable = true;
+  programs.zsh.promptInit = ''
+    PROMPT='%F{green}%n@%m %F{blue}%~ %F{yellow}$ %f'
+  '';
+}
+```
+
+Activate
+
+```bash
+home-manager switch
 ```
 
 Exit WSL and reboot it from the windows terminal (`gitbash`/`cmd`,`pwsh`, shouldn't matter):

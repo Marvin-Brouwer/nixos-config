@@ -15,7 +15,6 @@
     nixdev = {
       isNormalUser = true;
       extraGroups = ["wheel" "networkmanager"];
-      initialPassword = "password";
     };
   };
 
@@ -31,7 +30,7 @@
   # WSL-specific settings
   wsl = {
     enable = true;
-    defaultUser = vars.user.name;
+    defaultUser = "nixdev";
     startMenuLaunchers = true;
     wslConf = {
       automount.root = "/mnt";

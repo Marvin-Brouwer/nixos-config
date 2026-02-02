@@ -189,11 +189,6 @@ set_user_password() {
 main() {
   info "===== Starting NixOS‑WSL bootstrap ====="
 
-  # ----- 0️⃣ Prompt for the password (won't be stored) -----
-  local wsl_user="nixdev"   # <-- change if you use a different username
-  local plain_pw
-  plain_pw=$(prompt_for_password "${wsl_user}")
-
   # ----- 1️⃣ Remaining bootstrap steps (unchanged) -----
   ensure_nix_conf
   install_nix_direnv
@@ -205,7 +200,10 @@ main() {
   # ----- 2️⃣ Rebuild the system (no password in configuration.nix) -----
   rebuild_wsl
 
-  # ----- 3️⃣ Apply the password we collected -----
+  # ----- 3️⃣ Apply the password -----
+  local wsl_user="nixdev"   # <-- change if you use a different username
+  local plain_pw
+  plain_pw=$(prompt_for_password "${wsl_user}")
   set_user_password "${wsl_user}" "${plain_pw}"
 
   info "===== Bootstrap complete! ====="

@@ -44,7 +44,7 @@ Clone this repo
 # Install git temporarily (not in base install)
 nix-shell -p git
 # Clone your config
-git clone https://github.com/<your‑user>/nixos-config.git ~/nixos-config
+git clone https://github.com/Marvin-Brouwer/nixos-config.git ~/nixos-config
 cd ~/nixos-config
 ```
 

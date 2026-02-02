@@ -6,6 +6,8 @@
     # nix-direnv is a tiny wrapper that makes `use nix` work with flakes.
     # It ships as a Nix expression, no external dependency needed.
     nix-direnv.url = "github:nix-community/nix-direnv";
+    # Import the WSL module from the nixos-wsl flake (makes the `wsl` attribute set available).
+    nixos-wsl.url   = "github:nix-community/NixOS-WSL";
   };
 
   outputs = { self, nixpkgs, ... }:
@@ -25,6 +27,7 @@
       nixosConfigurations.wsl = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
+          nixos-wsl.nixosModules.default
           ./configuration.nix    
           # ./hardware-configuration.nix This is removed, NixOS-WSL solves this       
         ];

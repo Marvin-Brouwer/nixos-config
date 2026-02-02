@@ -23,6 +23,7 @@
     displayManager.sddm.enable = lib.mkForce false;     # no DM
     desktopManager.plasma6.enable = lib.mkForce false;
     pipewire.enable = lib.mkForce false;                # audio handled by Windows (wsl-host)
+    nix-daemon.enable = true;                           # enable the Nix daemon so `nix develop` works inside WSL
   };
   # Disable networking services unnecessary in WSL
   networking.wireless.enable = lib.mkForce false; # Disables wpa_supplicant
@@ -36,20 +37,6 @@
       network.generateResolvConf = true;
     };
   };
-
-
-  # enable the Nix daemon so `nix develop` works inside WSL
-  services.nix-daemon.enable = true;
-  # Import the WSL module from the community repo
-  imports = [
-    # Pull the official WSL module (makes the `wsl` attribute set
-    # available).  You can reference it directly from the flake input:
-    (builtins.fetchGit {
-      url = "https://github.com/nix-community/NixOS-WSL.git";
-      rev = "38a5250e57f583662eac3b944830e4b9e169e965"; # to update: git ls-remote https://github.com/nix-community/NixOS-WSL.git HEAD
-    })
-  ];
-
   
   # This option defines the first version of NixOS you have installed on this particular machine,
   # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.

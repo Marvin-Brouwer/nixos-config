@@ -24,9 +24,9 @@ prompt_for_password() {
 
   while true; do
     read -rsp "Enter password for user '${user}': " pw1
-    echo
+    echo ""
     read -rsp "Confirm password: " pw2
-    echo
+    echo ""
     if [[ "$pw1" == "$pw2" && -n "$pw1" ]]; then
       echo "$pw1"
       return
@@ -143,7 +143,7 @@ create_home_nix_if_missing() {
 { pkgs, ... }:
 
 let
-  shared = import "${HOME}/nixos-config/main.nix" { inherit pkgs; };
+  shared = import "${HOME}/nixos-config/profiles/default.profile.nix" { inherit pkgs; };
 in {
   home.stateVersion = "${nixos_version}";
   home.packages = shared.commonPackages;

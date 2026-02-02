@@ -83,12 +83,12 @@ echo 'use flake .#typescript' > .envrc
 direnv allow
 ```
 
-> [NOTE]!  
+> [!NOTE] 
 > In this example `typescript` be replaced by any profile.
 
 direnv will:
 
-Detect the use flake … line.
-Invoke nix develop .#typescript (or whichever attribute you asked for).
-Drop you into a shell where all packages defined in that profile are on $PATH, and the environment variables you exported are set.
-You can also combine multiple profiles in a single .envrc by chaining use flake statements, but usually one profile per project is enough.
+- Detect the use flake … line.
+- Invoke nix develop .#typescript (or whichever attribute you asked for).
+- Drop you into a shell where all packages defined in that profile are on $PATH, and the environment variables you exported are set.
+- You can also combine multiple profiles in a single .envrc by chaining use flake statements, but usually one profile per project is enough.

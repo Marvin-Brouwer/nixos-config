@@ -1,4 +1,3 @@
-# templates/profile.nix
 { pkgs, lib }:
 
 { profile }:

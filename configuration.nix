@@ -46,7 +46,7 @@
     # available).  You can reference it directly from the flake input:
     (builtins.fetchGit {
       url = "https://github.com/nix-community/NixOS-WSL.git";
-      rev = "main";   # or pin a specific commit
+      rev = "38a5250e57f583662eac3b944830e4b9e169e965"; # to update: git ls-remote https://github.com/nix-community/NixOS-WSL.git HEAD
     })
   ];
 

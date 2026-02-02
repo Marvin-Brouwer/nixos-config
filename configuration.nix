@@ -1,5 +1,4 @@
-# configuration.nix
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   # Configure network identity

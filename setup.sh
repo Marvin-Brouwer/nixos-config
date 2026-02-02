@@ -101,14 +101,26 @@ migrate_legacy_home_nix() {
   local new_dir="${HOME}/.config/home-manager"
   local new_path="${new_dir}/home.nix"
 
-  if [[ -f "${old_path}" ]]; then
-    info "Legacy home.nix found – migrating to ${new_path}"
-    mkdir -p "${new_dir}"
-    mv "${old_path}" "${new_path}"
-    ln -sf "${new_path}" "${old_path}"
-  else
+  # If the old file does not exist, nothing to do.
+  if [[ ! -f "${old_path}" ]]; then
     info "No legacy home.nix to migrate."
+    return
   fi
+
+  mkdir -p "${new_dir}"
+
+  # If the destination already exists and is the same inode as the source,
+  # we can safely skip the move.
+  if [[ -f "${new_path}" ]] && cmp -s "${old_path}" "${new_path}"; then
+    info "Legacy home.nix is already at the new location – nothing to move."
+  else
+    info "Migrating legacy home.nix to ${new_path}"
+    mv "${old_path}" "${new_path}"
+  fi
+
+  # Optional: keep a symlink at the old location for scripts that still look there.
+  # If you don’t want the symlink, just comment out the next line.
+  ln -sf "${new_path}" "${old_path}"
 }
 
 # ---------- 6️⃣ Create minimal home.nix if missing ----------

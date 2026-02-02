@@ -17,25 +17,6 @@ info()  { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
 warn()  { printf "\033[1;33m[WARN]\033[0m %s\n" "$*"; }
 error() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*" >&2; exit 1; }
 
-# ---------- 1️⃣ Prompt for a password (hidden input) ----------
-prompt_for_password() {
-  local user="$1"
-  local pw1 pw2
-
-  while true; do
-    read -rsp "Enter password for user '${user}': " pw1
-    echo "\n"
-    read -rsp "Confirm password: " pw2
-    echo "\n"
-    if [[ "$pw1" == "$pw2" && -n "$pw1" ]]; then
-      echo "$pw1"
-      return
-    else
-      warn "Passwords do not match or are empty – try again. \n"
-    fi
-  done
-}
-
 # ---------- 2️⃣ Ensure flakes are enabled ----------
 ensure_nix_conf() {
   local conf_dir="${HOME}/.config/nix"
@@ -175,14 +156,13 @@ rebuild_wsl() {
 }
 
 # ---------- 9️⃣ Set the user password inside the running VM ----------
-set_user_password() {
+echo_user_password() {
   local user="$1"
-  local plain_pw="$2"
 
   # `chpasswd` expects lines of the form "user:password"
   # We feed it via stdin; the command runs as root (via sudo).
-  info "Setting password for user '${user}' inside the WSL VM"
-  echo "${user}:${plain_pw}" | sudo chpasswd
+  info "Please set a password for '${user}' inside the WSL VM, run the following command:"
+  info "sudo passwd ${user}"
 }
 
 # ---------- Main execution flow ----------
@@ -202,9 +182,7 @@ main() {
 
   # ----- 3️⃣ Apply the password -----
   local wsl_user="nixdev"   # <-- change if you use a different username
-  local plain_pw
-  plain_pw=$(prompt_for_password "${wsl_user}")
-  set_user_password "${wsl_user}" "${plain_pw}"
+  echo_user_password "${wsl_user}"
 
   info "===== Bootstrap complete! ====="
   echo

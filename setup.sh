@@ -175,8 +175,8 @@ main() {
 
   info "===== Bootstrap complete! ====="
   echo
-  echo "Please set a password for '${user}' inside the WSL VM, run the following command:"
-  echo "    sudo passwd ${user}"
+  echo "Please set a password for '${wsl_user}' inside the WSL VM, run the following command:"
+  echo "    sudo passwd ${wsl_user}"
   echo 
   echo "⚠️  IMPORTANT: Restart the WSL VM so the new system takes effect:"
   echo "    wsl --shutdown"

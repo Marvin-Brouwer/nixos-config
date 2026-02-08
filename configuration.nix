@@ -16,7 +16,7 @@
   environment.systemPackages = with pkgs; [
     direnv
     nix-direnv
-    brave # TODO ungoogled-chromium was too much, because it compiles the entire thing. Ask claude how to solve this properly later
+    librewolf
     git
     gh
     curl
@@ -25,12 +25,12 @@
   # Make nix-direnv's library available to direnv
   environment.pathsToLink = [ "/share/nix-direnv" ];
 
-  # Set ungoogled-chromium as the default browser
-  environment.sessionVariables.BROWSER = "chromium";
+  # Set librewolf as the default browser (privacy-focused, pre-compiled in nixpkgs cache)
+  environment.sessionVariables.BROWSER = "librewolf";
   xdg.mime.defaultApplications = {
-    "text/html" = "chromium-browser.desktop";
-    "x-scheme-handler/http" = "chromium-browser.desktop";
-    "x-scheme-handler/https" = "chromium-browser.desktop";
+    "text/html" = "librewolf.desktop";
+    "x-scheme-handler/http" = "librewolf.desktop";
+    "x-scheme-handler/https" = "librewolf.desktop";
   };
 
   # Keep nix-direnv derivations alive (prevents GC from removing dev shells)

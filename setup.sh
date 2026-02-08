@@ -152,7 +152,9 @@ generate_hardware_config() {
 # ---------- 8️⃣ Rebuild the WSL system ----------
 rebuild_wsl() {
   info "Rebuilding the NixOS‑WSL system (may take a few minutes)…"
+  sudo ln -sfn "$(pwd)" /etc/nixos
   sudo nixos-rebuild switch --flake ".#wsl"
+  sudo nix-shell -p direnv
 }
 
 # ---------- Main execution flow ----------

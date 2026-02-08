@@ -2,192 +2,169 @@
 # ------------------------------------------------------------
 # setup.sh – one‑click bootstrap for the NixOS‑WSL dev‑profile repo
 # ------------------------------------------------------------
-# What it does (new):
-#   • Prompt you for a password for the default WSL user.
-#   • Rebuild the NixOS system **without** storing the password.
-#   • Immediately set the password inside the running VM using `chpasswd`.
-#   • (All previous steps – flakes, direnv, home‑manager, etc. – unchanged.)
+# What it does:
+#   1. Enable flakes in the user's nix config.
+#   2. Configure direnv to use nix-direnv for flake-based dev shells.
+#   3. Symlink /etc/nixos to this repo so nixos-rebuild auto-detects the flake.
+#   4. Rebuild the NixOS system (installs direnv, nix-direnv, etc. system-wide).
+#   5. Set up VSCode default settings for WSL development.
 # ------------------------------------------------------------
 
 set -euo pipefail
 IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ---------- Helper functions ----------
 info()  { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
 warn()  { printf "\033[1;33m[WARN]\033[0m %s\n" "$*"; }
 error() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*" >&2; exit 1; }
 
-# ---------- 2️⃣ Ensure flakes are enabled ----------
+# ---------- 1. Ensure flakes are enabled ----------
 ensure_nix_conf() {
   local conf_dir="${HOME}/.config/nix"
   local conf_file="${conf_dir}/nix.conf"
 
   mkdir -p "${conf_dir}"
-  if [[ -f "${conf_file}" && $(grep -c "experimental-features" "${conf_file}") -gt 0 ]]; then
-    info "Nix config already contains experimental‑features."
+  if [[ -f "${conf_file}" ]] && grep -q "experimental-features" "${conf_file}"; then
+    info "Nix config already contains experimental-features."
   else
     info "Creating/updating ${conf_file} to enable flakes."
     {
-      echo "# Added by nixos‑config/setup.sh"
+      echo "# Added by nixos-config/setup.sh"
       echo "experimental-features = nix-command flakes"
     } >> "${conf_file}"
   fi
 }
 
-# ---------- 3️⃣ Install nix‑direnv ----------
-install_nix_direnv() {
-  if nix profile list | grep -q nix-direnv; then
-    info "nix-direnv already installed."
-  else
-    info "Installing nix-direnv ..."
-    nix profile install nixpkgs#nix-direnv
-  fi
+# ---------- 2. Configure direnv + nix-direnv shell integration ----------
+configure_direnv() {
+  # direnv and nix-direnv are installed as system packages via configuration.nix.
+  # Here we just wire up the shell hooks and direnvrc.
 
-  # Detect rc file (bash or zsh)
+  # --- direnv hook for the interactive shell ---
   local rc_file=""
   if [[ -n "${BASH_VERSION-}" ]]; then
     rc_file="${HOME}/.bashrc"
   elif [[ -n "${ZSH_VERSION-}" ]]; then
     rc_file="${HOME}/.zshrc"
   else
-    warn "Cannot detect bash or zsh. Add 'eval \"$(nix-direnv)\"' to your shell startup manually."
+    warn "Cannot detect bash or zsh. Add 'eval \"\$(direnv hook bash)\"' to your shell startup manually."
     return
   fi
 
-  if grep -Fxq 'eval "$(nix-direnv)"' "${rc_file}" 2>/dev/null; then
+  local shell_name
+  shell_name="$(basename "${SHELL:-bash}")"
+
+  # Remove old broken hook if present
+  if grep -Fq 'eval "$(nix-direnv)"' "${rc_file}" 2>/dev/null; then
+    info "Removing old broken nix-direnv hook from ${rc_file}"
+    sed -i '/eval "\$(nix-direnv)"/d' "${rc_file}"
+    sed -i '/# Added by nixos-config\/setup.sh – enable nix-direnv/d' "${rc_file}"
+  fi
+
+  if grep -Fq 'eval "$(direnv hook' "${rc_file}" 2>/dev/null; then
     info "direnv hook already present in ${rc_file}"
   else
     info "Appending direnv hook to ${rc_file}"
     {
       echo ""
-      echo "# Added by nixos‑config/setup.sh – enable nix‑direnv"
-      echo 'eval "$(nix-direnv)"'
+      echo "# Added by nixos-config/setup.sh – enable direnv"
+      echo "eval \"\$(direnv hook ${shell_name})\""
     } >> "${rc_file}"
   fi
-}
 
-# ---------- 4️⃣ Install home‑manager ----------
-install_home_manager() {
-  if nix profile list | grep -q home-manager; then
-    info "home-manager already installed."
+  # --- nix-direnv library for direnv ---
+  local direnvrc_dir="${HOME}/.config/direnv"
+  local direnvrc_file="${direnvrc_dir}/direnvrc"
+  local nix_direnv_source='source /run/current-system/sw/share/nix-direnv/direnvrc'
+
+  mkdir -p "${direnvrc_dir}"
+
+  if [[ -f "${direnvrc_file}" ]] && grep -Fq "nix-direnv" "${direnvrc_file}" 2>/dev/null; then
+    info "nix-direnv already configured in direnvrc."
   else
-    info "Installing home-manager ..."
-    nix profile install nixpkgs#home-manager
+    info "Configuring direnvrc to source nix-direnv."
+    {
+      echo "# Added by nixos-config/setup.sh – use nix-direnv for 'use flake'"
+      echo "${nix_direnv_source}"
+    } >> "${direnvrc_file}"
   fi
 }
 
-# ---------- 5️⃣ Migrate legacy home.nix ----------
-migrate_legacy_home_nix() {
-  local old_path="${HOME}/.config/nixpkgs/home.nix"
-  local new_dir="${HOME}/.config/home-manager"
-  local new_path="${new_dir}/home.nix"
-
-  # If the old file does not exist, nothing to do.
-  if [[ ! -f "${old_path}" ]]; then
-    info "No legacy home.nix to migrate."
+# ---------- 3. Symlink /etc/nixos to this repo ----------
+link_etc_nixos() {
+  if [[ -L /etc/nixos && "$(readlink /etc/nixos)" == "${SCRIPT_DIR}" ]]; then
+    info "/etc/nixos already symlinked to ${SCRIPT_DIR}."
     return
   fi
 
-  mkdir -p "${new_dir}"
-
-  # If the destination already exists and is the same inode as the source,
-  # we can safely skip the move.
-  if [[ -f "${new_path}" ]] && cmp -s "${old_path}" "${new_path}"; then
-    info "Legacy home.nix is already at the new location – nothing to move."
-  else
-    info "Migrating legacy home.nix to ${new_path}"
-    mv "${old_path}" "${new_path}"
+  if [[ -d /etc/nixos ]]; then
+    info "Backing up existing /etc/nixos to /etc/nixos.bak"
+    sudo mv /etc/nixos /etc/nixos.bak
   fi
 
-  # Optional: keep a symlink at the old location for scripts that still look there.
-  # If you don’t want the symlink, just comment out the next line.
-  ln -sf "${new_path}" "${old_path}"
+  info "Symlinking /etc/nixos -> ${SCRIPT_DIR}"
+  sudo ln -sfn "${SCRIPT_DIR}" /etc/nixos
 }
 
-# ---------- 6️⃣ Create minimal home.nix if missing ----------
-create_home_nix_if_missing() {
-  local home_dir="${HOME}/.config/home-manager"
-  local home_file="${home_dir}/home.nix"
-
-  if [[ -f "${home_file}" ]]; then
-    info "home.nix already exists."
-    return
-  fi
-
-  info "Creating a minimal home.nix at ${home_file}"
-
-  local nixos_version
-  nixos_version=$(nixos-version | awk '{print $1}')
-
-  cat > "${home_file}" <<EOF
-# ~/.config/home-manager/home.nix
-{ pkgs, ... }:
-
-let
-  shared = import "${HOME}/nixos-config/profiles/default.profile.nix" { inherit pkgs; };
-in {
-  home.stateVersion = "${nixos_version}";
-  home.packages = shared.commonPackages;
-  home.sessionVariables = shared.env;
-
-  programs.zsh.enable = true;
-  programs.zsh.promptInit = ''
-    PROMPT='%F{green}%n@%m %F{blue}%~ %F{yellow}\\\$ %f'
-  '';
-}
-EOF
-}
-
-# ---------- 7️⃣ Generate hardware‑configuration.nix ----------
-generate_hardware_config() {
-  local hw_file="./hardware-configuration.nix"
-  if [[ -f "${hw_file}" ]]; then
-    info "hardware-configuration.nix already exists – skipping."
-  else
-    info "Generating hardware-configuration.nix (first run)."
-    nixos-generate-config --root "$(pwd)" --dir "$(pwd)"
-  fi
-}
-
-# ---------- 8️⃣ Rebuild the WSL system ----------
+# ---------- 4. Rebuild the WSL system ----------
 rebuild_wsl() {
-  info "Rebuilding the NixOS‑WSL system (may take a few minutes)…"
-  sudo ln -sfn "$(pwd)" /etc/nixos
-  sudo nixos-rebuild switch --flake ".#wsl"
-  sudo nix-shell -p direnv
+  info "Rebuilding the NixOS-WSL system (may take a few minutes)..."
+  sudo nixos-rebuild switch --flake "${SCRIPT_DIR}#nix-wsl"
+}
+
+# ---------- 5. Set up VSCode settings for WSL ----------
+setup_vscode_settings() {
+  local settings_dir="${HOME}/.config/Code/User"
+  local settings_file="${settings_dir}/settings.json"
+
+  mkdir -p "${settings_dir}"
+
+  if [[ -f "${settings_file}" ]]; then
+    info "VSCode settings.json already exists – skipping."
+    return
+  fi
+
+  info "Creating default VSCode settings for WSL development."
+  cat > "${settings_file}" <<'SETTINGS'
+{
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.profiles.linux": {
+    "bash": {
+      "path": "/run/current-system/sw/bin/bash",
+      "icon": "terminal-bash"
+    }
+  }
+}
+SETTINGS
 }
 
 # ---------- Main execution flow ----------
 main() {
-  info "===== Starting NixOS‑WSL bootstrap ====="
+  info "===== Starting NixOS-WSL bootstrap ====="
 
-  # ----- 1️⃣ Remaining bootstrap steps (unchanged) -----
   ensure_nix_conf
-  install_nix_direnv
-  install_home_manager
-  migrate_legacy_home_nix
-  create_home_nix_if_missing
-  generate_hardware_config
-
-  # ----- 2️⃣ Rebuild the system (no password in configuration.nix) -----
+  configure_direnv
+  link_etc_nixos
   rebuild_wsl
+  setup_vscode_settings
 
-  # ----- 3️⃣ Apply the password -----
-  local wsl_user="nixos"   # <-- change if you use a different username
+  local wsl_user="nixos"
 
   info "===== Bootstrap complete! ====="
   echo
-  echo "Please set a password for '${wsl_user}' inside the WSL VM, run the following command:"
+  echo "Please set a password for '${wsl_user}', run:"
   echo "    sudo passwd ${wsl_user}"
-  echo 
-  echo "⚠️  IMPORTANT: Restart the WSL VM so the new system takes effect:"
+  echo
+  echo "IMPORTANT: Restart the WSL VM so the new system takes effect:"
   echo "    wsl --shutdown"
   echo "    wsl"
   echo
-  echo "You can now use the dev‑shells, e.g.:"
-  echo "    cd ~/repos/my‑first‑proj"
-  echo "    direnv allow   # loads the profile you defined in .envrc"
-  echo "    nix develop .#typescript   # manual invocation if you prefer"
+  echo "After restart, you can use dev-shells in any project:"
+  echo "    cd ~/repos/my-project"
+  echo "    echo 'use flake ~/nixos-config#typescript' > .envrc"
+  echo "    direnv allow"
   echo
 }
 

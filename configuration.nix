@@ -18,6 +18,8 @@
     nix-direnv
     ungoogled-chromium
     git
+    gh
+    curl
   ];
 
   # Make nix-direnv's library available to direnv

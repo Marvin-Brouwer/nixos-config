@@ -8,16 +8,16 @@
   extra = [
     pkgs.vscode-extensions.ms-vscode.vscode-typescript-next
     pkgs.vscode-extensions.ms-toolsai.jupyter
-    pgks.vscode-extensions.dbaumer.vscode-eslint
-    pgks.vscode-extensions.vitest.explorer
-    pgks.vscode-extensions.yoavbls.pretty-ts-errors
-    pgks.vscode-extensions.wix.vscode-import-cost
-    pgks.vscode-extensions.meganrogge.template-string-converter
-    pgks.vscode-extensions.pflannery.vscode-versionlens # or Pilaton.vscode-npm-lens
+    pkgs.vscode-extensions.dbaumer.vscode-eslint
+    pkgs.vscode-extensions.vitest.explorer
+    pkgs.vscode-extensions.yoavbls.pretty-ts-errors
+    pkgs.vscode-extensions.wix.vscode-import-cost
+    pkgs.vscode-extensions.meganrogge.template-string-converter
+    pkgs.vscode-extensions.pflannery.vscode-versionlens # or Pilaton.vscode-npm-lens
     # Maybe? https://marketplace.visualstudio.com/items?itemName=bradgashler.htmltagwrap
     # Maybe? https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode # no use for it yet
-    pgks.vscode-extensions.rodsarhan.tstypecolorpreview
-    pgks.vscode-extensions.Kundros.regexer-extension # Maybe, we use regex101 mostly
-    pgks.vscode-extensions.AntiAntiSepticeye.vscode-color-picker
+    pkgs.vscode-extensions.rodsarhan.tstypecolorpreview
+    pkgs.vscode-extensions.Kundros.regexer-extension # Maybe, we use regex101 mostly
+    pkgs.vscode-extensions.AntiAntiSepticeye.vscode-color-picker
   ];
 }

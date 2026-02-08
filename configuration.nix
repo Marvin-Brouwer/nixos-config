@@ -12,6 +12,31 @@
     };
   };
 
+  # System-wide packages
+  environment.systemPackages = with pkgs; [
+    direnv
+    nix-direnv
+    ungoogled-chromium
+    git
+  ];
+
+  # Make nix-direnv's library available to direnv
+  environment.pathsToLink = [ "/share/nix-direnv" ];
+
+  # Set ungoogled-chromium as the default browser
+  environment.sessionVariables.BROWSER = "chromium";
+  xdg.mime.defaultApplications = {
+    "text/html" = "chromium-browser.desktop";
+    "x-scheme-handler/http" = "chromium-browser.desktop";
+    "x-scheme-handler/https" = "chromium-browser.desktop";
+  };
+
+  # Keep nix-direnv derivations alive (prevents GC from removing dev shells)
+  nix.settings = {
+    keep-outputs = true;
+    keep-derivations = true;
+  };
+
   # Override common settings that don't work well in WSL
   services = {
     xserver.enable = lib.mkForce false;                 # no X server needed
@@ -31,7 +56,7 @@
       network.generateResolvConf = true;
     };
   };
-  
+
   # This option defines the first version of NixOS you have installed on this particular machine,
   # and is used to maintain compatibility with application data (e.g. databases) created on older NixOS versions.
   #

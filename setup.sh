@@ -155,16 +155,6 @@ rebuild_wsl() {
   sudo nixos-rebuild switch --flake ".#wsl"
 }
 
-# ---------- 9️⃣ Set the user password inside the running VM ----------
-echo_user_password() {
-  local user="$1"
-
-  # `chpasswd` expects lines of the form "user:password"
-  # We feed it via stdin; the command runs as root (via sudo).
-  info "Please set a password for '${user}' inside the WSL VM, run the following command:"
-  info "sudo passwd ${user}"
-}
-
 # ---------- Main execution flow ----------
 main() {
   info "===== Starting NixOS‑WSL bootstrap ====="
@@ -181,11 +171,13 @@ main() {
   rebuild_wsl
 
   # ----- 3️⃣ Apply the password -----
-  local wsl_user="nixdev"   # <-- change if you use a different username
-  echo_user_password "${wsl_user}"
+  local wsl_user="nixos"   # <-- change if you use a different username
 
   info "===== Bootstrap complete! ====="
   echo
+  echo "Please set a password for '${user}' inside the WSL VM, run the following command:"
+  echo "    sudo passwd ${user}"
+  echo 
   echo "⚠️  IMPORTANT: Restart the WSL VM so the new system takes effect:"
   echo "    wsl --shutdown"
   echo "    wsl"

@@ -9,11 +9,6 @@
     nixos = {
       isNormalUser = true;
       extraGroups = ["wheel" "networkmanager"];
-      # Keep nixos user temporarily
-    };
-    nixdev = {
-      isNormalUser = true;
-      extraGroups = ["wheel" "networkmanager"];
     };
   };
 
@@ -29,7 +24,7 @@
   # WSL-specific settings
   wsl = {
     enable = true;
-    defaultUser = "nixdev";
+    defaultUser = "nixos";
     startMenuLaunchers = true;
     wslConf = {
       automount.root = "/mnt";

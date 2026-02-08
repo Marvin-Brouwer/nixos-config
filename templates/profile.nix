@@ -1,4 +1,4 @@
-{ pkgs, lib }:
+{ pkgs, lib, xdg }:
 
 { profile }:
 
@@ -10,6 +10,7 @@ let
     curl
     jq
     htop
+    ungoogled-chromium
   ];
 
   # Merge the caller‑supplied packages with the defaults

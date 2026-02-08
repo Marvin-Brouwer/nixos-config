@@ -26,6 +26,6 @@ in
 # so merging finalEnv directly exports all env vars (EDITOR, LANG,
 # NODE_OPTIONS, etc.) into the shell.
 pkgs.mkShell (finalEnv // {
-  name = "dev-shell-${builtins.currentSystem}";
+  name = "dev-shell-${pkgs.system}";
   packages = allPackages;
 })

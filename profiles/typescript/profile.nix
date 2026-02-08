@@ -7,7 +7,6 @@
       pkgs.nodejs_24
       pkgs.typescript
       pkgs.eslint
-      pkgs.npm
       pkgs.pnpm
       pkgs.esbuild
       (import ./vscode.nix { inherit pkgs; })

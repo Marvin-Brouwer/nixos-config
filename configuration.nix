@@ -16,19 +16,19 @@
   environment.systemPackages = with pkgs; [
     direnv
     nix-direnv
-    ungoogled-chromium
+    librewolf
     git
   ];
 
   # Make nix-direnv's library available to direnv
   environment.pathsToLink = [ "/share/nix-direnv" ];
 
-  # Set ungoogled-chromium as the default browser
-  environment.sessionVariables.BROWSER = "chromium";
+  # Set librewolf as the default browser (privacy-focused, pre-compiled in nixpkgs cache)
+  environment.sessionVariables.BROWSER = "librewolf";
   xdg.mime.defaultApplications = {
-    "text/html" = "chromium-browser.desktop";
-    "x-scheme-handler/http" = "chromium-browser.desktop";
-    "x-scheme-handler/https" = "chromium-browser.desktop";
+    "text/html" = "librewolf.desktop";
+    "x-scheme-handler/http" = "librewolf.desktop";
+    "x-scheme-handler/https" = "librewolf.desktop";
   };
 
   # Keep nix-direnv derivations alive (prevents GC from removing dev shells)

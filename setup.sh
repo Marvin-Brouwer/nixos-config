@@ -149,12 +149,29 @@ generate_hardware_config() {
   fi
 }
 
-# ---------- 8️⃣ Rebuild the WSL system ----------
+# ---------- 8️⃣ Symlink /etc/nixos to this repo ----------
+link_etc_nixos() {
+  local repo_dir
+  repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  if [[ -L /etc/nixos && "$(readlink /etc/nixos)" == "${repo_dir}" ]]; then
+    info "/etc/nixos already symlinked to ${repo_dir}."
+    return
+  fi
+
+  if [[ -d /etc/nixos ]]; then
+    info "Backing up existing /etc/nixos to /etc/nixos.bak"
+    sudo mv /etc/nixos /etc/nixos.bak
+  fi
+
+  info "Symlinking /etc/nixos → ${repo_dir}"
+  sudo ln -sfn "${repo_dir}" /etc/nixos
+}
+
+# ---------- 9️⃣ Rebuild the WSL system ----------
 rebuild_wsl() {
   info "Rebuilding the NixOS‑WSL system (may take a few minutes)…"
-  sudo ln -sfn "$(pwd)" /etc/nixos
-  sudo nixos-rebuild switch --flake ".#wsl"
-  sudo nix-shell -p direnv
+  sudo nixos-rebuild switch --flake ".#nix-wsl"
 }
 
 # ---------- Main execution flow ----------
@@ -168,6 +185,7 @@ main() {
   migrate_legacy_home_nix
   create_home_nix_if_missing
   generate_hardware_config
+  link_etc_nixos
 
   # ----- 2️⃣ Rebuild the system (no password in configuration.nix) -----
   rebuild_wsl

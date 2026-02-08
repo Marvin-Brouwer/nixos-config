@@ -24,7 +24,7 @@
       );
     in {
       # Load static config
-      nixosConfigurations.wsl = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.nix-wsl = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
           nixos-wsl.nixosModules.default

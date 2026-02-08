@@ -2,7 +2,7 @@
 
 (import ../../templates/profile.nix { inherit pkgs lib; }) {
   profile = {
-    
+
     packages = [
       pkgs.nodejs-24
       pkgs.typescript
@@ -10,7 +10,7 @@
       pkgs.npm
       pkgs.pnpm
       pkgs.esbuild
-      import ./vscode.nix { inherit pkgs; };
+      (import ./vscode.nix { inherit pkgs; })
     ];
 
     env = {

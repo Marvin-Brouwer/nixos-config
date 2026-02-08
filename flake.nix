@@ -13,7 +13,7 @@
   outputs = { self, nixpkgs, nixos-wsl, ... }:
     let
       system = "x86_64-linux";
-      pkgs   = import nixpkgs { inherit system; };
+      pkgs   = import nixpkgs { inherit system; config.allowUnfree = true; };
       lib    = pkgs.lib;
 
       # Discover profiles

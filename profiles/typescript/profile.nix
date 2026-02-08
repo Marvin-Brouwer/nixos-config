@@ -4,7 +4,7 @@
   profile = {
     
     packages = [
-      pkgs.nodejs-20_x
+      pkgs.nodejs-24
       pkgs.typescript
       pkgs.eslint
       pkgs.npm

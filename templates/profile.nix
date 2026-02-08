@@ -6,6 +6,7 @@ let
   # Packages that appear in *every* dev shell
   defaultPackages = with pkgs; [
     git
+    gh
     curl
     jq
     htop

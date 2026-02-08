@@ -18,6 +18,8 @@
     nix-direnv
     librewolf
     git
+    gh
+    curl
   ];
 
   # Make nix-direnv's library available to direnv

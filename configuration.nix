@@ -16,7 +16,7 @@
   environment.systemPackages = with pkgs; [
     direnv
     nix-direnv
-    ungoogled-chromium
+    brave # TODO ungoogled-chromium was too much, because it compiles the entire thing. Ask claude how to solve this properly later
     git
     gh
     curl

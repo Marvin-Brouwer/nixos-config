@@ -10,7 +10,7 @@ let
     curl
     jq
     htop
-    ungoogled-chromium
+    brave # TODO ungoogled-chromium was too much, because it compiles the entire thing. Ask claude how to solve this properly later
   ];
 
   # Merge the caller-supplied packages with the defaults

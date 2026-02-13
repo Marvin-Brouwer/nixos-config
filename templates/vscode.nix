@@ -3,12 +3,13 @@
 # -----------------------------------------------------------------
 # Base list of extensions that all profiles inherit.
 #
-# Extensions not packaged in nixpkgs can be installed via VSCode's
-# built-in marketplace (Ctrl+Shift+X). Missing extensions are listed
-# at the bottom of this file for reference.
+# Extensions from nixpkgs use: pkgs.vscode-extensions.<publisher>.<name>
+# Extensions from the marketplace use: pkgs.vscode-marketplace.<publisher>.<name>
+# (provided by the nix-vscode-extensions overlay in flake.nix)
 # -----------------------------------------------------------------
 let
   base = [
+    # --- Available in nixpkgs ---
     pkgs.vscode-extensions.jnoortheen.nix-ide
     pkgs.vscode-extensions.dbaeumer.vscode-eslint
     pkgs.vscode-extensions.esbenp.prettier-vscode
@@ -28,31 +29,31 @@ let
     pkgs.vscode-extensions.formulahendry.auto-rename-tag
     pkgs.vscode-extensions.mads-hartmann.bash-ide-vscode
     pkgs.vscode-extensions.funkyremi.vscode-google-translate
-  ];
 
-  # Not packaged in nixpkgs — install these via VSCode marketplace:
-  #   streetsidesoftware.code-spell-checker-dutch
-  #   qiaojie.binary-viewer (or ms-vscode.hexeditor)
-  #   anseki.vscode-color
-  #   unifiedjs.vscode-remark
-  #   hgent.json-field-filter
-  #   oliversturm.fix-json
-  #   richie5um2.vscode-statusbar-json-path
-  #   motivesoft.vscode-restart
-  #   maattdd.gitless (or eamodio.gitlens)
-  #   joshuapoehls.json-escaper
-  #   ExodiusStudios.comment-anchors
-  #   stuart.unique-window-colors
-  #   kisstkondoros.vscode-gutter-preview
-  #   midudev.better-svg
-  #   pomdtr.excalidraw-editor
-  #   MermaidChart.vscode-mermaid-chart
-  #   DutchIgor.json-viewer
-  #   Tion.evenbettercomments
-  #   hediet.debug-visualizer
-  #   heaths.vscode-guid
-  #   lamartire.git-indicators
-  #   meronz.manpages
+    # --- From marketplace (via nix-vscode-extensions overlay) ---
+    pkgs.vscode-marketplace.streetsidesoftware.code-spell-checker-dutch
+    pkgs.vscode-marketplace.qiaojie.binary-viewer # Maybe also test ms-vscode.hexeditor
+    pkgs.vscode-marketplace.anseki.vscode-color
+    pkgs.vscode-marketplace.unifiedjs.vscode-remark
+    pkgs.vscode-marketplace.hgent.json-field-filter
+    pkgs.vscode-marketplace.oliversturm.fix-json
+    pkgs.vscode-marketplace.richie5um2.vscode-statusbar-json-path
+    pkgs.vscode-marketplace.motivesoft.vscode-restart
+    pkgs.vscode-marketplace.maattdd.gitless # pkgs.vscode-extensions.eamodio.gitlens
+    pkgs.vscode-marketplace.joshuapoehls.json-escaper
+    pkgs.vscode-marketplace.exodiusstudios.comment-anchors
+    pkgs.vscode-marketplace.stuart.unique-window-colors
+    pkgs.vscode-marketplace.kisstkondoros.vscode-gutter-preview
+    pkgs.vscode-marketplace.midudev.better-svg
+    pkgs.vscode-marketplace.pomdtr.excalidraw-editor
+    pkgs.vscode-marketplace.mermaidchart.vscode-mermaid-chart
+    pkgs.vscode-marketplace.dutchigor.json-viewer
+    pkgs.vscode-marketplace.tion.evenbettercomments
+    pkgs.vscode-marketplace.hediet.debug-visualizer
+    pkgs.vscode-marketplace.heaths.vscode-guid
+    pkgs.vscode-marketplace.lamartire.git-indicators
+    pkgs.vscode-marketplace.meronz.manpages
+  ];
 in
 
 { extra ? [] }:

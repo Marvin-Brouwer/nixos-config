@@ -37,6 +37,7 @@
   nix.settings = {
     keep-outputs = true;
     keep-derivations = true;
+    experimental-features = [ "nix-command" "flakes" ];
   };
 
   # Override common settings that don't work well in WSL

@@ -38,7 +38,7 @@ let
     pkgs.vscode-marketplace.qiaojie.binary-viewer # Maybe also test https://marketplace.visualstudio.com/items?itemName=ms-vscode.hexeditor
     pkgs.vscode-marketplace.anseki.vscode-color
     pkgs.vscode-marketplace.unifiedjs.vscode-remark
-    pkgs.vscode-marketplace.hgent.json-field-filter
+    pkgs.vscode-marketplace.hagent.json-field-filter
     pkgs.vscode-marketplace.oliversturm.fix-json
     pkgs.vscode-marketplace.richie5um2.vscode-statusbar-json-path
     pkgs.vscode-marketplace.motivesoft.vscode-restart

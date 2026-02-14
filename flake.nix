@@ -8,12 +8,18 @@
     nix-direnv.url = "github:nix-community/nix-direnv";
     # Import the WSL module from the nixos-wsl flake (makes the `wsl` attribute set available).
     nixos-wsl.url   = "github:nix-community/nixos-wsl/release-25.05";
+    # All VSCode marketplace extensions as nix packages (auto-updated)
+    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
   };
 
-  outputs = { self, nixpkgs, nixos-wsl, ... }:
+  outputs = { self, nixpkgs, nixos-wsl, nix-vscode-extensions, ... }:
     let
       system = "x86_64-linux";
-      pkgs   = import nixpkgs { inherit system; config.allowUnfree = true; };
+      pkgs   = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+        overlays = [ nix-vscode-extensions.overlays.default ];
+      };
       lib    = pkgs.lib;
 
       # Discover profiles

@@ -79,7 +79,12 @@ in
 pkgs.mkShell (finalEnv // {
   name = "dev-shell-${pkgs.system}";
   packages = allPackages;
-  shellHook = lib.optionalString (extensions != []) ''
+  shellHook = ''
+    # Open VSCode with the named profile (for profile-specific settings/UI)
+    code() {
+      command code --profile "${profileName}" "$@"
+    }
+  '' + lib.optionalString (extensions != []) ''
     # Sync VSCode extensions in the background
     ${syncExtensionsScript} &
   '';

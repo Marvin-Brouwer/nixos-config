@@ -31,7 +31,6 @@
   # https://marketplace.visualstudio.com/items?itemName=RhaldKhein.vscode-xrest-client
   # We'd like something in between httpyac and xrest-client
   "dotenv.dotenv-vscode"
-  "oderwat.indent-rainbow" # if this is too much, check https://marketplace.visualstudio.com/items?itemName=tal7aouy.rainbow-bracket
   "Tyriar.sort-lines"
   "vscode-icons-team.vscode-icons"
   "joshuapoehls.json-escaper"
@@ -55,4 +54,5 @@
   "lamartire.git-indicators"
   "meronz.manpages"
   "maattdd.gitless" # or eamodio.gitlens
+  "anthropic.claude-code"
 ] ++ extra

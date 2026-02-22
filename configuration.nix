@@ -14,16 +14,19 @@
 
   # System-wide packages
   environment.systemPackages = with pkgs; [
-    direnv
-    nix-direnv
     librewolf
     git
     gh
     curl
   ];
 
-  # Make nix-direnv's library available to direnv
-  environment.pathsToLink = [ "/share/nix-direnv" ];
+  # direnv + nix-direnv: the NixOS module writes the shell hook into /etc/bashrc
+  # (sourced for every bash session) and configures the direnvrc for nix-direnv,
+  # so the hook is active on every terminal start without any manual setup.
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+  };
 
   # Set librewolf as the default browser (privacy-focused, pre-compiled in nixpkgs cache)
   environment.sessionVariables.BROWSER = "librewolf";

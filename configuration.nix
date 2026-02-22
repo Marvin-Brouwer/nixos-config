@@ -18,6 +18,7 @@
     git
     gh
     curl
+    wget  # required by VS Code Remote-WSL to download the server
   ];
 
   # direnv + nix-direnv: the NixOS module writes the shell hook into /etc/bashrc

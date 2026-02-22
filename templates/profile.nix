@@ -94,6 +94,48 @@ let
   # Wrapper script: opens VSCode with the named profile.
   # Must be a real script (not a shell function) because direnv only
   # captures environment variables, not functions.
+  # Script that ensures Windows VSCode uses this WSL distro as the default terminal.
+  # Writes to the global VSCode user settings on the Windows side.
+  # Only runs once (marker file tracks completion).
+  ensureTerminalScript = pkgs.writeShellScript "ensure-vscode-terminal" ''
+    if ! command -v cmd.exe >/dev/null 2>&1; then
+      exit 0
+    fi
+
+    MARKER_DIR="''${HOME}/.config/nixos-vscode-profiles"
+    MARKER_FILE="''${MARKER_DIR}/terminal-configured"
+    if [ -f "$MARKER_FILE" ]; then
+      exit 0
+    fi
+
+    # Find Windows APPDATA via cmd.exe
+    WIN_APPDATA=$(cd /mnt/c && cmd.exe /c "echo %APPDATA%" 2>/dev/null | tr -d '\r')
+    # Convert Windows path to WSL path: C:\Users\... -> /mnt/c/Users/...
+    WSL_APPDATA=$(echo "$WIN_APPDATA" | sed 's|\\|/|g; s|^\([A-Za-z]\):|/mnt/\L\1|')
+    SETTINGS_FILE="$WSL_APPDATA/Code/User/settings.json"
+
+    if [ ! -f "$SETTINGS_FILE" ]; then
+      mkdir -p "$(dirname "$SETTINGS_FILE")"
+      echo '{}' > "$SETTINGS_FILE"
+    fi
+
+    DISTRO="''${WSL_DISTRO_NAME:-NixOS}"
+
+    # Merge terminal default into existing settings
+    ${pkgs.jq}/bin/jq \
+      --arg distro "$DISTRO (WSL)" \
+      '."terminal.integrated.defaultProfile.windows" = $distro' \
+      "$SETTINGS_FILE" > "''${SETTINGS_FILE}.tmp" \
+      && mv "''${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
+
+    mkdir -p "$MARKER_DIR"
+    touch "$MARKER_FILE"
+    echo "[vscode] Set default terminal to '$DISTRO (WSL)'."
+  '';
+
+  # Wrapper script: opens VSCode with the named profile.
+  # Must be a real script (not a shell function) because direnv only
+  # captures environment variables, not functions.
   vscodeWrapper = pkgs.writeShellScriptBin "vscode" ''
     if [ $# -eq 0 ]; then
       exec code --profile "${profileName}" .
@@ -109,7 +151,10 @@ in
 pkgs.mkShell (finalEnv // {
   name = "dev-shell-${pkgs.system}";
   packages = allPackages ++ [ vscodeWrapper ];
-  shellHook = lib.optionalString (extensions != []) ''
+  shellHook = ''
+    # Ensure Windows VSCode defaults to this WSL distro as terminal
+    ${ensureTerminalScript} &
+  '' + lib.optionalString (extensions != []) ''
     # Sync VSCode extensions in the background
     ${syncExtensionsScript} &
   '';

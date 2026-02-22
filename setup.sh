@@ -56,40 +56,40 @@ configure_direnv() {
   local shell_name
   shell_name="$(basename "${SHELL:-bash}")"
 
-  # Remove old broken hook if present
-  if grep -Fq 'eval "$(nix-direnv)"' "${rc_file}" 2>/dev/null; then
-    info "Removing old broken nix-direnv hook from ${rc_file}"
-    sed -i '/eval "\$(nix-direnv)"/d' "${rc_file}"
-    sed -i '/# Added by nixos-config\/setup.sh – enable nix-direnv/d' "${rc_file}"
-  fi
-
-  if grep -Fq 'eval "$(direnv hook' "${rc_file}" 2>/dev/null; then
-    info "direnv hook already present in ${rc_file}"
-  else
-    info "Appending direnv hook to ${rc_file}"
-    {
-      echo ""
-      echo "# Added by nixos-config/setup.sh – enable direnv"
-      echo "eval \"\$(direnv hook ${shell_name})\""
-    } >> "${rc_file}"
-  fi
-
-  # --- nix-direnv library for direnv ---
   local direnvrc_dir="${HOME}/.config/direnv"
   local direnvrc_file="${direnvrc_dir}/direnvrc"
   local nix_direnv_source='source /run/current-system/sw/share/nix-direnv/direnvrc'
 
-  mkdir -p "${direnvrc_dir}"
+  # --- Reset: remove all previous direnv configuration ---
+  info "Resetting direnv configuration to defaults..."
 
-  if [[ -f "${direnvrc_file}" ]] && grep -Fq "nix-direnv" "${direnvrc_file}" 2>/dev/null; then
-    info "nix-direnv already configured in direnvrc."
-  else
-    info "Configuring direnvrc to source nix-direnv."
-    {
-      echo "# Added by nixos-config/setup.sh – use nix-direnv for 'use flake'"
-      echo "${nix_direnv_source}"
-    } >> "${direnvrc_file}"
+  if [[ -f "${rc_file}" ]]; then
+    info "Removing all direnv hooks from ${rc_file}"
+    sed -i '/# Added by nixos-config\/setup\.sh.*direnv/d' "${rc_file}"
+    sed -i '/eval "\$(direnv hook/d' "${rc_file}"
+    sed -i '/eval "\$(nix-direnv)"/d' "${rc_file}"
   fi
+
+  if [[ -f "${direnvrc_file}" ]]; then
+    info "Removing existing direnvrc."
+    rm -f "${direnvrc_file}"
+  fi
+
+  # --- Install: add direnv hook ---
+  info "Appending direnv hook to ${rc_file}"
+  {
+    echo ""
+    echo "# Added by nixos-config/setup.sh – enable direnv"
+    echo "eval \"\$(direnv hook ${shell_name})\""
+  } >> "${rc_file}"
+
+  # --- Install: configure nix-direnv library ---
+  mkdir -p "${direnvrc_dir}"
+  info "Configuring direnvrc to source nix-direnv."
+  {
+    echo "# Added by nixos-config/setup.sh – use nix-direnv for 'use flake'"
+    echo "${nix_direnv_source}"
+  } > "${direnvrc_file}"
 }
 
 # ---------- 3. Symlink /etc/nixos to this repo ----------

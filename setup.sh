@@ -44,20 +44,22 @@ reset_all() {
     sed -i '/experimental-features = nix-command flakes/d' "${conf_file}"
   fi
 
-  # Direnv shell hook
+  # Direnv shell hook – remove any lines written by older versions of this script.
+  # Current setup relies on programs.direnv in configuration.nix (writes to /etc/bashrc).
   local rc_file
   rc_file="$(get_rc_file)"
   if [[ -n "${rc_file}" && -f "${rc_file}" ]]; then
-    info "Removing direnv hooks from ${rc_file}"
+    info "Removing any legacy direnv hooks from ${rc_file}"
     sed -i '/# Added by nixos-config\/setup\.sh.*direnv/d' "${rc_file}"
     sed -i '/eval "\$(direnv hook/d' "${rc_file}"
     sed -i '/eval "\$(nix-direnv)"/d' "${rc_file}"
   fi
 
-  # Direnvrc
+  # Direnvrc – remove if written by an older version of this script.
+  # nix-direnv integration is now handled by programs.direnv.nix-direnv in NixOS.
   local direnvrc_file="${HOME}/.config/direnv/direnvrc"
   if [[ -f "${direnvrc_file}" ]]; then
-    info "Removing ${direnvrc_file}"
+    info "Removing legacy ${direnvrc_file}"
     rm -f "${direnvrc_file}"
   fi
 
@@ -90,41 +92,7 @@ ensure_nix_conf() {
   } >> "${conf_file}"
 }
 
-# ---------- 2. Configure direnv + nix-direnv shell integration ----------
-configure_direnv() {
-  # direnv and nix-direnv are installed as system packages via configuration.nix.
-  # Here we just wire up the shell hooks and direnvrc.
-
-  local rc_file
-  rc_file="$(get_rc_file)"
-  if [[ -z "${rc_file}" ]]; then
-    warn "Cannot detect bash or zsh. Add 'eval \"\$(direnv hook bash)\"' to your shell startup manually."
-    return
-  fi
-
-  local shell_name
-  shell_name="$(basename "${SHELL:-bash}")"
-
-  local direnvrc_dir="${HOME}/.config/direnv"
-  local direnvrc_file="${direnvrc_dir}/direnvrc"
-  local nix_direnv_source='source /run/current-system/sw/share/nix-direnv/direnvrc'
-
-  info "Appending direnv hook to ${rc_file}"
-  {
-    echo ""
-    echo "# Added by nixos-config/setup.sh – enable direnv"
-    echo "eval \"\$(direnv hook ${shell_name})\""
-  } >> "${rc_file}"
-
-  mkdir -p "${direnvrc_dir}"
-  info "Configuring direnvrc to source nix-direnv."
-  {
-    echo "# Added by nixos-config/setup.sh – use nix-direnv for 'use flake'"
-    echo "${nix_direnv_source}"
-  } > "${direnvrc_file}"
-}
-
-# ---------- 3. Symlink /etc/nixos to this repo ----------
+# ---------- 2. Symlink /etc/nixos to this repo ----------
 link_etc_nixos() {
   if [[ -d /etc/nixos ]]; then
     info "Backing up existing /etc/nixos to /etc/nixos.bak"
@@ -167,7 +135,6 @@ main() {
 
   reset_all
   ensure_nix_conf
-  configure_direnv
   link_etc_nixos
   rebuild_wsl
   setup_vscode_settings
@@ -188,6 +155,9 @@ main() {
   echo "    echo 'use flake ~/nixos-config#typescript' > .envrc"
   echo "    direnv allow"
   echo
+
+  info "Reloading shell to activate hooks in the current session..."
+  exec "${SHELL:-bash}"
 }
 
 main "$@"

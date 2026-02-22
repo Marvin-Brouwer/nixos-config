@@ -22,22 +22,23 @@ let
   };
   finalEnv = defaultEnv // (profile.env or {});
 
-  # VSCode profile management
+  # VSCode extension management
   profileName = profile.name or "default";
   extensions = profile.extensions or [];
 
-  # Script that syncs extensions into the named VSCode profile.
+  # Script that syncs VSCode extensions for this dev shell.
   # Runs in the background so it doesn't block shell startup.
-  # Only installs missing extensions; removes extensions not in the list.
+  # Uses the profile name only for hash-based change detection.
+  # No --profile flag: WSL's remote extension host is already
+  # isolated per distro, so extensions install into the WSL side directly.
   syncExtensionsScript = pkgs.writeShellScript "sync-vscode-extensions" ''
     if ! command -v code >/dev/null 2>&1; then
       exit 0
     fi
 
-    PROFILE="${profileName}"
     DESIRED_EXTS="${lib.concatStringsSep "\n" (map lib.toLower extensions)}"
     MARKER_DIR="''${HOME}/.config/nixos-vscode-profiles"
-    MARKER_FILE="''${MARKER_DIR}/''${PROFILE}.hash"
+    MARKER_FILE="''${MARKER_DIR}/${profileName}.hash"
     DESIRED_HASH=$(echo "$DESIRED_EXTS" | ${pkgs.coreutils}/bin/sha256sum | cut -d' ' -f1)
 
     mkdir -p "$MARKER_DIR"
@@ -47,15 +48,15 @@ let
       exit 0
     fi
 
-    echo "[vscode] Syncing extensions for profile '$PROFILE'..."
+    echo "[vscode] Syncing extensions for dev shell '${profileName}'..."
 
-    INSTALLED=$(code --profile "$PROFILE" --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
+    INSTALLED=$(code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
 
     # Install missing extensions
     for ext in $DESIRED_EXTS; do
       if ! echo "$INSTALLED" | grep -qx "$ext"; then
         echo "[vscode] Installing $ext..."
-        code --profile "$PROFILE" --install-extension "$ext" --force 2>/dev/null
+        code --install-extension "$ext" --force 2>/dev/null
       fi
     done
 
@@ -63,12 +64,12 @@ let
     for ext in $INSTALLED; do
       if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
         echo "[vscode] Removing $ext (not in profile)..."
-        code --profile "$PROFILE" --uninstall-extension "$ext" 2>/dev/null
+        code --uninstall-extension "$ext" 2>/dev/null
       fi
     done
 
     echo "$DESIRED_HASH" > "$MARKER_FILE"
-    echo "[vscode] Profile '$PROFILE' is up to date."
+    echo "[vscode] Dev shell '${profileName}' extensions are up to date."
   '';
 
 in
@@ -81,10 +82,5 @@ pkgs.mkShell (finalEnv // {
   shellHook = lib.optionalString (extensions != []) ''
     # Sync VSCode extensions in the background
     ${syncExtensionsScript} &
-
-    # Wrap code to always use this profile
-    code() {
-      command code --profile "${profileName}" "$@"
-    }
   '';
 })

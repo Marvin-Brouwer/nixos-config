@@ -177,7 +177,7 @@ main() {
   echo
   echo "After restart, you can use dev-shells in any project:"
   echo "    cd ~/repos/my-project"
-  echo "    echo 'use flake ~/nixos-config#typescript' > .envrc"
+  echo '    echo -e '"'"'use flake ~/nixos-config#typescript\neval "$shellHook"'"'"' > .envrc'
   echo "    direnv allow"
   echo
 

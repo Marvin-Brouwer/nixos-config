@@ -115,11 +115,30 @@ setup_global_gitignore() {
   local ignore_file="${ignore_dir}/ignore"
 
   mkdir -p "${ignore_dir}"
-  info "Creating global gitignore at ${ignore_file}"
-  cat > "${ignore_file}" <<'GITIGNORE'
-# nix-direnv cache (per-project shell environment)
-.direnv/
-GITIGNORE
+  touch "${ignore_file}"
+
+  # Entries to ensure are present (pattern + comment pairs)
+  local -a entries=(
+    ".direnv/:# nix-direnv cache (per-project shell environment)"
+    ".envrc:# direnv config (per-project, may contain local paths)"
+  )
+
+  local changed=0
+  for entry in "${entries[@]}"; do
+    local pattern="${entry%%:*}"
+    local comment="${entry#*:}"
+    if ! grep -qxF "${pattern}" "${ignore_file}"; then
+      echo "${comment}" >> "${ignore_file}"
+      echo "${pattern}" >> "${ignore_file}"
+      changed=1
+    fi
+  done
+
+  if [[ "${changed}" -eq 1 ]]; then
+    info "Updated global gitignore at ${ignore_file}"
+  else
+    info "Global gitignore already up to date."
+  fi
 }
 
 # ---------- 6. Install VSCode WSL Remote extension on Windows ----------

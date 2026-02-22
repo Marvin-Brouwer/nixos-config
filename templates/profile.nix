@@ -121,10 +121,19 @@ let
 
     DISTRO="''${WSL_DISTRO_NAME:-NixOS}"
 
-    # Merge terminal default into existing settings
+    # Merge terminal profile definition and set it as default
     ${pkgs.jq}/bin/jq \
-      --arg distro "$DISTRO (WSL)" \
-      '."terminal.integrated.defaultProfile.windows" = $distro' \
+      --arg name "$DISTRO (WSL)" \
+      --arg distro "$DISTRO" \
+      '
+        ."terminal.integrated.defaultProfile.windows" = $name |
+        ."terminal.integrated.profiles.windows" += {
+          ($name): {
+            "path": "C:\\WINDOWS\\System32\\wsl.exe",
+            "args": ["-d", $distro]
+          }
+        }
+      ' \
       "$SETTINGS_FILE" > "''${SETTINGS_FILE}.tmp" \
       && mv "''${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
 

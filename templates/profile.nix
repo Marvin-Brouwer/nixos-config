@@ -26,15 +26,20 @@ let
   profileName = profile.name or "default";
   extensions = profile.extensions or [];
 
-  # Script that syncs VSCode extensions for this dev shell.
+  # Script that syncs VSCode extensions into the named Windows-side profile.
   # Runs in the background so it doesn't block shell startup.
-  # Uses the profile name only for hash-based change detection.
-  # No --profile flag: WSL's remote extension host is already
-  # isolated per distro, so extensions install into the WSL side directly.
+  # Uses cmd.exe to call the Windows VS Code CLI directly, which supports
+  # --profile for extension management (the WSL `code` wrapper does not).
   syncExtensionsScript = pkgs.writeShellScript "sync-vscode-extensions" ''
-    if ! command -v code >/dev/null 2>&1; then
+    # Need cmd.exe to reach the Windows-side VS Code CLI
+    if ! command -v cmd.exe >/dev/null 2>&1; then
       exit 0
     fi
+
+    # Helper: run Windows code CLI with --profile
+    win_code() {
+      cmd.exe /c "code --profile \"${profileName}\" $*" 2>/dev/null
+    }
 
     DESIRED_EXTS="${lib.concatStringsSep "\n" (map lib.toLower extensions)}"
     MARKER_DIR="''${HOME}/.config/nixos-vscode-profiles"
@@ -48,15 +53,15 @@ let
       exit 0
     fi
 
-    echo "[vscode] Syncing extensions for dev shell '${profileName}'..."
+    echo "[vscode] Syncing extensions for profile '${profileName}'..."
 
-    INSTALLED=$(code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
+    INSTALLED=$(win_code --list-extensions | tr -d '\r' | tr '[:upper:]' '[:lower:]')
 
     # Install missing extensions
     for ext in $DESIRED_EXTS; do
       if ! echo "$INSTALLED" | grep -qx "$ext"; then
         echo "[vscode] Installing $ext..."
-        code --install-extension "$ext" --force 2>/dev/null
+        win_code --install-extension "$ext" --force
       fi
     done
 
@@ -64,12 +69,12 @@ let
     for ext in $INSTALLED; do
       if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
         echo "[vscode] Removing $ext (not in profile)..."
-        code --uninstall-extension "$ext" 2>/dev/null
+        win_code --uninstall-extension "$ext"
       fi
     done
 
     echo "$DESIRED_HASH" > "$MARKER_FILE"
-    echo "[vscode] Dev shell '${profileName}' extensions are up to date."
+    echo "[vscode] Profile '${profileName}' is up to date."
   '';
 
 in

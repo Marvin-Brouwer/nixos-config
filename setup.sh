@@ -109,7 +109,20 @@ rebuild_wsl() {
   sudo nixos-rebuild switch --flake "${SCRIPT_DIR}#nix-wsl"
 }
 
-# ---------- 5. Install VSCode WSL Remote extension on Windows ----------
+# ---------- 5. Set up global gitignore ----------
+setup_global_gitignore() {
+  local ignore_dir="${HOME}/.config/git"
+  local ignore_file="${ignore_dir}/ignore"
+
+  mkdir -p "${ignore_dir}"
+  info "Creating global gitignore at ${ignore_file}"
+  cat > "${ignore_file}" <<'GITIGNORE'
+# nix-direnv cache (per-project shell environment)
+.direnv/
+GITIGNORE
+}
+
+# ---------- 6. Install VSCode WSL Remote extension on Windows ----------
 setup_vscode_wsl() {
   if ! command -v cmd.exe >/dev/null 2>&1; then
     warn "cmd.exe not found — skipping Windows VSCode setup."
@@ -129,6 +142,7 @@ main() {
   ensure_nix_conf
   link_etc_nixos
   rebuild_wsl
+  setup_global_gitignore
   setup_vscode_wsl
 
   local wsl_user="nixos"

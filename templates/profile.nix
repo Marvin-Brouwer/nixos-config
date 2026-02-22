@@ -78,24 +78,25 @@ let
     echo "[vscode] Profile '${profileName}' is up to date."
   '';
 
+  # Wrapper script: opens VSCode with the named profile.
+  # Must be a real script (not a shell function) because direnv only
+  # captures environment variables, not functions.
+  vscodeWrapper = pkgs.writeShellScriptBin "vscode" ''
+    if [ $# -eq 0 ]; then
+      exec code --profile "${profileName}" .
+    else
+      exec code --profile "${profileName}" "$@"
+    fi
+  '';
+
 in
 # mkShell treats unknown string attributes as environment variables,
 # so merging finalEnv directly exports all env vars (EDITOR, LANG,
 # NODE_OPTIONS, etc.) into the shell.
 pkgs.mkShell (finalEnv // {
   name = "dev-shell-${pkgs.system}";
-  packages = allPackages;
-  shellHook = ''
-    # Open VSCode with the named profile (for profile-specific settings/UI)
-    # Defaults to current directory if no argument is given.
-    vscode() {
-      if [ $# -eq 0 ]; then
-        command code --profile "${profileName}" .
-      else
-        command code --profile "${profileName}" "$@"
-      fi
-    }
-  '' + lib.optionalString (extensions != []) ''
+  packages = allPackages ++ [ vscodeWrapper ];
+  shellHook = lib.optionalString (extensions != []) ''
     # Sync VSCode extensions in the background
     ${syncExtensionsScript} &
   '';

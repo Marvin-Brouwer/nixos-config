@@ -33,16 +33,6 @@ let
   # wrapper does not). Must cd to /mnt/c first because cmd.exe cannot
   # handle UNC paths (\\wsl.localhost\...) as working directory.
   syncExtensionsScript = pkgs.writeShellScript "sync-vscode-extensions" ''
-    if ! command -v cmd.exe >/dev/null 2>&1; then
-      exit 0
-    fi
-
-    # Helper: run Windows code CLI with --profile from a valid Windows path.
-    # cmd.exe cannot handle UNC paths (\\wsl.localhost\...) so we cd first.
-    win_code() {
-      (cd /mnt/c && cmd.exe /c code --profile "${profileName}" "$@") | tr -d '\r'
-    }
-
     DESIRED_EXTS="${lib.concatStringsSep "\n" (map lib.toLower extensions)}"
     MARKER_DIR="''${HOME}/.config/nixos-vscode-profiles"
     MARKER_FILE="''${MARKER_DIR}/${profileName}.hash"
@@ -55,32 +45,61 @@ let
       exit 0
     fi
 
-    # Ensure the profile exists by listing extensions (creates it if needed)
-    win_code --list-extensions >/dev/null 2>&1
-
-    echo "[vscode] Syncing extensions for profile '${profileName}'..."
-
-    INSTALLED=$(win_code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
     FAIL=0
 
-    # Install missing extensions
-    for ext in $DESIRED_EXTS; do
-      if ! echo "$INSTALLED" | grep -qx "$ext"; then
-        echo "[vscode] Installing $ext..."
-        if ! win_code --install-extension "$ext" --force >/dev/null 2>&1; then
-          echo "[vscode] WARNING: Failed to install $ext"
-          FAIL=1
-        fi
-      fi
-    done
+    # --- Windows side: install into the named VS Code profile ---
+    if command -v cmd.exe >/dev/null 2>&1; then
+      # cmd.exe cannot handle UNC paths so we cd to /mnt/c first
+      win_code() {
+        (cd /mnt/c && cmd.exe /c code --profile "${profileName}" "$@") | tr -d '\r'
+      }
 
-    # Remove extensions not in the desired list
-    for ext in $INSTALLED; do
-      if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
-        echo "[vscode] Removing $ext (not in profile)..."
-        win_code --uninstall-extension "$ext" >/dev/null 2>&1
-      fi
-    done
+      # Ensure the profile exists
+      win_code --list-extensions >/dev/null 2>&1
+
+      echo "[vscode] Syncing Windows profile '${profileName}'..."
+      WIN_INSTALLED=$(win_code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
+
+      for ext in $DESIRED_EXTS; do
+        if ! echo "$WIN_INSTALLED" | grep -qx "$ext"; then
+          echo "[vscode] [win] Installing $ext..."
+          if ! win_code --install-extension "$ext" --force >/dev/null 2>&1; then
+            echo "[vscode] [win] WARNING: Failed to install $ext"
+            FAIL=1
+          fi
+        fi
+      done
+
+      for ext in $WIN_INSTALLED; do
+        if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
+          echo "[vscode] [win] Removing $ext..."
+          win_code --uninstall-extension "$ext" >/dev/null 2>&1
+        fi
+      done
+    fi
+
+    # --- WSL side: install into the VS Code remote server ---
+    if command -v code >/dev/null 2>&1; then
+      echo "[vscode] Syncing WSL remote extensions..."
+      WSL_INSTALLED=$(code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
+
+      for ext in $DESIRED_EXTS; do
+        if ! echo "$WSL_INSTALLED" | grep -qx "$ext"; then
+          echo "[vscode] [wsl] Installing $ext..."
+          if ! code --install-extension "$ext" --force >/dev/null 2>&1; then
+            echo "[vscode] [wsl] WARNING: Failed to install $ext"
+            FAIL=1
+          fi
+        fi
+      done
+
+      for ext in $WSL_INSTALLED; do
+        if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
+          echo "[vscode] [wsl] Removing $ext..."
+          code --uninstall-extension "$ext" >/dev/null 2>&1
+        fi
+      done
+    fi
 
     # Only write hash if all installs succeeded
     if [ "$FAIL" -eq 0 ]; then

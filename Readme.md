@@ -79,7 +79,7 @@ Inside any directory where you want a particular profile loaded, create a .envrc
 Run (once per directory):
 
 ```bash
-echo 'use flake .#typescript' > .envrc
+use flake ~/nixos-config#typescript > .envrc
 direnv allow
 ```
 

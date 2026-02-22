@@ -21,6 +21,9 @@
     wget  # required by VS Code Remote-WSL to download the server
   ];
 
+  # nix-ld: compatibility shim for dynamically linked binaries (e.g. VS Code Server's node)
+  programs.nix-ld.enable = true;
+
   # direnv + nix-direnv: the NixOS module writes the shell hook into /etc/bashrc
   # (sourced for every bash session) and configures the direnvrc for nix-direnv,
   # so the hook is active on every terminal start without any manual setup.

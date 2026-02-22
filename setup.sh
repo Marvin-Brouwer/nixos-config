@@ -188,6 +188,9 @@ main() {
   echo "    echo 'use flake ~/nixos-config#typescript' > .envrc"
   echo "    direnv allow"
   echo
+
+  info "Reloading shell to activate hooks in the current session..."
+  exec "${SHELL:-bash}"
 }
 
 main "$@"

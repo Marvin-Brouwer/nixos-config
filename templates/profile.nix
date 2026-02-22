@@ -28,20 +28,23 @@ let
 
   # Script that syncs VSCode extensions into the named Windows-side profile.
   # Runs in the background so it doesn't block shell startup.
-  # Uses cmd.exe to call the Windows VS Code CLI directly, which supports
-  # --profile for extension management (the WSL `code` wrapper does not).
+  # Uses cmd.exe from /mnt/c to call the Windows VS Code CLI directly,
+  # which supports --profile for extension management (the WSL `code`
+  # wrapper does not). Must cd to /mnt/c first because cmd.exe cannot
+  # handle UNC paths (\\wsl.localhost\...) as working directory.
   syncExtensionsScript = pkgs.writeShellScript "sync-vscode-extensions" ''
-    # Need cmd.exe to reach the Windows-side VS Code CLI.
-    # The WSL `code` wrapper doesn't support --profile for extension
-    # management, but the Windows `code` via cmd.exe does.
     if ! command -v cmd.exe >/dev/null 2>&1; then
       exit 0
     fi
 
-    PROFILE="${profileName}"
+    # Helper: run Windows code CLI with --profile from a valid Windows path
+    win_code() {
+      (cd /mnt/c && cmd.exe /c code --profile "${profileName}" "$@" 2>/dev/null) | tr -d '\r'
+    }
+
     DESIRED_EXTS="${lib.concatStringsSep "\n" (map lib.toLower extensions)}"
     MARKER_DIR="''${HOME}/.config/nixos-vscode-profiles"
-    MARKER_FILE="''${MARKER_DIR}/$PROFILE.hash"
+    MARKER_FILE="''${MARKER_DIR}/${profileName}.hash"
     DESIRED_HASH=$(echo "$DESIRED_EXTS" | ${pkgs.coreutils}/bin/sha256sum | cut -d' ' -f1)
 
     mkdir -p "$MARKER_DIR"
@@ -51,15 +54,15 @@ let
       exit 0
     fi
 
-    echo "[vscode] Syncing extensions for profile '$PROFILE'..."
+    echo "[vscode] Syncing extensions for profile '${profileName}'..."
 
-    INSTALLED=$(cmd.exe /c code --profile "$PROFILE" --list-extensions 2>/dev/null | tr -d '\r' | tr '[:upper:]' '[:lower:]')
+    INSTALLED=$(win_code --list-extensions | tr '[:upper:]' '[:lower:]')
 
     # Install missing extensions
     for ext in $DESIRED_EXTS; do
       if ! echo "$INSTALLED" | grep -qx "$ext"; then
         echo "[vscode] Installing $ext..."
-        cmd.exe /c code --profile "$PROFILE" --install-extension "$ext" --force 2>/dev/null
+        win_code --install-extension "$ext" --force >/dev/null
       fi
     done
 
@@ -67,12 +70,12 @@ let
     for ext in $INSTALLED; do
       if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
         echo "[vscode] Removing $ext (not in profile)..."
-        cmd.exe /c code --profile "$PROFILE" --uninstall-extension "$ext" 2>/dev/null
+        win_code --uninstall-extension "$ext" >/dev/null
       fi
     done
 
     echo "$DESIRED_HASH" > "$MARKER_FILE"
-    echo "[vscode] Profile '$PROFILE' is up to date."
+    echo "[vscode] Profile '${profileName}' is up to date."
   '';
 
 in

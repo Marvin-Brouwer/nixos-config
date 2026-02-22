@@ -3,6 +3,7 @@
 # setup.sh – one‑click bootstrap for the NixOS‑WSL dev‑profile repo
 # ------------------------------------------------------------
 # What it does:
+#   0. Reset all previous configuration back to defaults.
 #   1. Enable flakes in the user's nix config.
 #   2. Configure direnv to use nix-direnv for flake-based dev shells.
 #   3. Symlink /etc/nixos to this repo so nixos-rebuild auto-detects the flake.
@@ -20,21 +21,73 @@ info()  { printf "\033[1;34m[INFO]\033[0m %s\n" "$*"; }
 warn()  { printf "\033[1;33m[WARN]\033[0m %s\n" "$*"; }
 error() { printf "\033[1;31m[ERROR]\033[0m %s\n" "$*" >&2; exit 1; }
 
+# ---------- Shared: detect shell rc file ----------
+get_rc_file() {
+  if [[ -n "${BASH_VERSION-}" ]]; then
+    echo "${HOME}/.bashrc"
+  elif [[ -n "${ZSH_VERSION-}" ]]; then
+    echo "${HOME}/.zshrc"
+  else
+    echo ""
+  fi
+}
+
+# ---------- 0. Reset all previous configuration ----------
+reset_all() {
+  info "===== Resetting all previous configuration ====="
+
+  # Nix config – remove lines added by setup.sh
+  local conf_file="${HOME}/.config/nix/nix.conf"
+  if [[ -f "${conf_file}" ]]; then
+    info "Removing setup.sh entries from ${conf_file}"
+    sed -i '/# Added by nixos-config\/setup\.sh/d' "${conf_file}"
+    sed -i '/experimental-features = nix-command flakes/d' "${conf_file}"
+  fi
+
+  # Direnv shell hook
+  local rc_file
+  rc_file="$(get_rc_file)"
+  if [[ -n "${rc_file}" && -f "${rc_file}" ]]; then
+    info "Removing direnv hooks from ${rc_file}"
+    sed -i '/# Added by nixos-config\/setup\.sh.*direnv/d' "${rc_file}"
+    sed -i '/eval "\$(direnv hook/d' "${rc_file}"
+    sed -i '/eval "\$(nix-direnv)"/d' "${rc_file}"
+  fi
+
+  # Direnvrc
+  local direnvrc_file="${HOME}/.config/direnv/direnvrc"
+  if [[ -f "${direnvrc_file}" ]]; then
+    info "Removing ${direnvrc_file}"
+    rm -f "${direnvrc_file}"
+  fi
+
+  # /etc/nixos symlink
+  if [[ -L /etc/nixos ]]; then
+    info "Removing /etc/nixos symlink"
+    sudo rm -f /etc/nixos
+  fi
+
+  # VSCode settings
+  local settings_file="${HOME}/.config/Code/User/settings.json"
+  if [[ -f "${settings_file}" ]]; then
+    info "Removing VSCode settings.json"
+    rm -f "${settings_file}"
+  fi
+
+  info "Reset complete."
+}
+
 # ---------- 1. Ensure flakes are enabled ----------
 ensure_nix_conf() {
   local conf_dir="${HOME}/.config/nix"
   local conf_file="${conf_dir}/nix.conf"
 
   mkdir -p "${conf_dir}"
-  if [[ -f "${conf_file}" ]] && grep -q "experimental-features" "${conf_file}"; then
-    info "Nix config already contains experimental-features."
-  else
-    info "Creating/updating ${conf_file} to enable flakes."
-    {
-      echo "# Added by nixos-config/setup.sh"
-      echo "experimental-features = nix-command flakes"
-    } >> "${conf_file}"
-  fi
+  info "Creating/updating ${conf_file} to enable flakes."
+  {
+    echo "# Added by nixos-config/setup.sh"
+    echo "experimental-features = nix-command flakes"
+  } >> "${conf_file}"
 }
 
 # ---------- 2. Configure direnv + nix-direnv shell integration ----------
@@ -42,13 +95,9 @@ configure_direnv() {
   # direnv and nix-direnv are installed as system packages via configuration.nix.
   # Here we just wire up the shell hooks and direnvrc.
 
-  # --- direnv hook for the interactive shell ---
-  local rc_file=""
-  if [[ -n "${BASH_VERSION-}" ]]; then
-    rc_file="${HOME}/.bashrc"
-  elif [[ -n "${ZSH_VERSION-}" ]]; then
-    rc_file="${HOME}/.zshrc"
-  else
+  local rc_file
+  rc_file="$(get_rc_file)"
+  if [[ -z "${rc_file}" ]]; then
     warn "Cannot detect bash or zsh. Add 'eval \"\$(direnv hook bash)\"' to your shell startup manually."
     return
   fi
@@ -60,22 +109,6 @@ configure_direnv() {
   local direnvrc_file="${direnvrc_dir}/direnvrc"
   local nix_direnv_source='source /run/current-system/sw/share/nix-direnv/direnvrc'
 
-  # --- Reset: remove all previous direnv configuration ---
-  info "Resetting direnv configuration to defaults..."
-
-  if [[ -f "${rc_file}" ]]; then
-    info "Removing all direnv hooks from ${rc_file}"
-    sed -i '/# Added by nixos-config\/setup\.sh.*direnv/d' "${rc_file}"
-    sed -i '/eval "\$(direnv hook/d' "${rc_file}"
-    sed -i '/eval "\$(nix-direnv)"/d' "${rc_file}"
-  fi
-
-  if [[ -f "${direnvrc_file}" ]]; then
-    info "Removing existing direnvrc."
-    rm -f "${direnvrc_file}"
-  fi
-
-  # --- Install: add direnv hook ---
   info "Appending direnv hook to ${rc_file}"
   {
     echo ""
@@ -83,7 +116,6 @@ configure_direnv() {
     echo "eval \"\$(direnv hook ${shell_name})\""
   } >> "${rc_file}"
 
-  # --- Install: configure nix-direnv library ---
   mkdir -p "${direnvrc_dir}"
   info "Configuring direnvrc to source nix-direnv."
   {
@@ -94,11 +126,6 @@ configure_direnv() {
 
 # ---------- 3. Symlink /etc/nixos to this repo ----------
 link_etc_nixos() {
-  if [[ -L /etc/nixos && "$(readlink /etc/nixos)" == "${SCRIPT_DIR}" ]]; then
-    info "/etc/nixos already symlinked to ${SCRIPT_DIR}."
-    return
-  fi
-
   if [[ -d /etc/nixos ]]; then
     info "Backing up existing /etc/nixos to /etc/nixos.bak"
     sudo mv /etc/nixos /etc/nixos.bak
@@ -120,12 +147,6 @@ setup_vscode_settings() {
   local settings_file="${settings_dir}/settings.json"
 
   mkdir -p "${settings_dir}"
-
-  if [[ -f "${settings_file}" ]]; then
-    info "VSCode settings.json already exists – skipping."
-    return
-  fi
-
   info "Creating default VSCode settings for WSL development."
   cat > "${settings_file}" <<'SETTINGS'
 {
@@ -144,6 +165,7 @@ SETTINGS
 main() {
   info "===== Starting NixOS-WSL bootstrap ====="
 
+  reset_all
   ensure_nix_conf
   configure_direnv
   link_etc_nixos

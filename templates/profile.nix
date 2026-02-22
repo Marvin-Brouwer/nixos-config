@@ -37,9 +37,10 @@ let
       exit 0
     fi
 
-    # Helper: run Windows code CLI with --profile from a valid Windows path
+    # Helper: run Windows code CLI with --profile from a valid Windows path.
+    # cmd.exe cannot handle UNC paths (\\wsl.localhost\...) so we cd first.
     win_code() {
-      (cd /mnt/c && cmd.exe /c code --profile "${profileName}" "$@" 2>/dev/null) | tr -d '\r'
+      (cd /mnt/c && cmd.exe /c code --profile "${profileName}" "$@") | tr -d '\r'
     }
 
     DESIRED_EXTS="${lib.concatStringsSep "\n" (map lib.toLower extensions)}"
@@ -54,15 +55,22 @@ let
       exit 0
     fi
 
+    # Ensure the profile exists by listing extensions (creates it if needed)
+    win_code --list-extensions >/dev/null 2>&1
+
     echo "[vscode] Syncing extensions for profile '${profileName}'..."
 
-    INSTALLED=$(win_code --list-extensions | tr '[:upper:]' '[:lower:]')
+    INSTALLED=$(win_code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
+    FAIL=0
 
     # Install missing extensions
     for ext in $DESIRED_EXTS; do
       if ! echo "$INSTALLED" | grep -qx "$ext"; then
         echo "[vscode] Installing $ext..."
-        win_code --install-extension "$ext" --force >/dev/null
+        if ! win_code --install-extension "$ext" --force >/dev/null 2>&1; then
+          echo "[vscode] WARNING: Failed to install $ext"
+          FAIL=1
+        fi
       fi
     done
 
@@ -70,12 +78,17 @@ let
     for ext in $INSTALLED; do
       if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
         echo "[vscode] Removing $ext (not in profile)..."
-        win_code --uninstall-extension "$ext" >/dev/null
+        win_code --uninstall-extension "$ext" >/dev/null 2>&1
       fi
     done
 
-    echo "$DESIRED_HASH" > "$MARKER_FILE"
-    echo "[vscode] Profile '${profileName}' is up to date."
+    # Only write hash if all installs succeeded
+    if [ "$FAIL" -eq 0 ]; then
+      echo "$DESIRED_HASH" > "$MARKER_FILE"
+      echo "[vscode] Profile '${profileName}' is up to date."
+    else
+      echo "[vscode] Some extensions failed to install. Will retry next time."
+    fi
   '';
 
   # Wrapper script: opens VSCode with the named profile.

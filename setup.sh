@@ -69,11 +69,11 @@ reset_all() {
     sudo rm -f /etc/nixos
   fi
 
-  # VSCode settings
-  local settings_file="${HOME}/.config/Code/User/settings.json"
-  if [[ -f "${settings_file}" ]]; then
-    info "Removing VSCode settings.json"
-    rm -f "${settings_file}"
+  # VSCode extension sync marker files
+  local marker_dir="${HOME}/.config/nixos-vscode-profiles"
+  if [[ -d "${marker_dir}" ]]; then
+    info "Removing VSCode extension sync markers (will re-sync on next shell entry)"
+    rm -rf "${marker_dir}"
   fi
 
   info "Reset complete."
@@ -109,24 +109,16 @@ rebuild_wsl() {
   sudo nixos-rebuild switch --flake "${SCRIPT_DIR}#nix-wsl"
 }
 
-# ---------- 5. Set up VSCode settings for WSL ----------
-setup_vscode_settings() {
-  local settings_dir="${HOME}/.config/Code/User"
-  local settings_file="${settings_dir}/settings.json"
+# ---------- 5. Install VSCode WSL Remote extension on Windows ----------
+setup_vscode_wsl() {
+  if ! command -v cmd.exe >/dev/null 2>&1; then
+    warn "cmd.exe not found — skipping Windows VSCode setup."
+    return
+  fi
 
-  mkdir -p "${settings_dir}"
-  info "Creating default VSCode settings for WSL development."
-  cat > "${settings_file}" <<'SETTINGS'
-{
-  "terminal.integrated.defaultProfile.linux": "bash",
-  "terminal.integrated.profiles.linux": {
-    "bash": {
-      "path": "/run/current-system/sw/bin/bash",
-      "icon": "terminal-bash"
-    }
-  }
-}
-SETTINGS
+  info "Installing VSCode WSL Remote extension on the Windows side..."
+  (cd /mnt/c && cmd.exe /c code --install-extension ms-vscode-remote.remote-wsl --force) || \
+    warn "Failed to install WSL Remote extension. You may need to install it manually."
 }
 
 # ---------- Main execution flow ----------
@@ -137,7 +129,7 @@ main() {
   ensure_nix_conf
   link_etc_nixos
   rebuild_wsl
-  setup_vscode_settings
+  setup_vscode_wsl
 
   local wsl_user="nixos"
 

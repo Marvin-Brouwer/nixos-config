@@ -37,6 +37,11 @@
       # and pin the project's `playwright` dependency to it.
       PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
       # Stop npm's postinstall re-downloading the broken ones over the top.
+      # For the same reason, never run `playwright install` here -- the
+      # browsers come from the store path above. Drive tests with the
+      # project's own CLI (`npx playwright test`), so the CLI version and the
+      # browser revisions stay in step; there is deliberately no global
+      # `playwright` on PATH.
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
       PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
     };

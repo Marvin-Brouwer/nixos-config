@@ -79,9 +79,15 @@ Inside any directory where you want a particular profile loaded, create a .envrc
 Run (once per directory):
 
 ```bash
-echo 'use flake ~/nixos-config#typescript' > .envrc
+printf 'use flake ~/nixos-config#typescript\neval "$shellHook"\n' > .envrc
 direnv allow
 ```
+
+> [!IMPORTANT]
+> The `eval "$shellHook"` line matters. `use flake` only *exports* `$shellHook`
+> as a variable; without evaluating it the VSCode extension sync and the
+> per-profile shell-entry checks (such as the Playwright browser revision
+> check) never run.
 
 > [!NOTE] 
 > In this example `typescript` be replaced by any profile.

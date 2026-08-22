@@ -23,6 +23,10 @@ let
   };
   finalEnv = defaultEnv // (profile.env or {});
 
+  # Anything the calling profile wants to run on shell entry, appended after
+  # the VSCode housekeeping below.
+  extraShellHook = profile.shellHook or "";
+
   # VSCode extension management
   profileName = profile.name or "default";
   extensions = profile.extensions or [];
@@ -186,5 +190,5 @@ pkgs.mkShell (finalEnv // {
   '' + lib.optionalString (extensions != []) ''
     # Sync VSCode extensions in the background
     ${syncExtensionsScript} &
-  '';
+  '' + extraShellHook;
 })

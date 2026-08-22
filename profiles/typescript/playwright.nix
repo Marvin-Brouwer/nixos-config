@@ -14,9 +14,12 @@
 #   1. Playwright resolves browsers by revision number, so the packaged
 #      Playwright release has to match the project's npm one exactly.
 #      nixpkgs trails upstream, so any project-side bump can break it.
-#   2. Even matched, the layout differs. Current Playwright ships Chrome for
-#      Testing and expects `chromium-<rev>/chrome-linux64/chrome`; nixpkgs
-#      25.05 packages the older registry build at `chrome-linux/chrome`.
+#   2. The on-disk layout has to match too, and it moves independently of
+#      the version. Current Playwright ships Chrome for Testing at
+#      `chromium-<rev>/chrome-linux64/chrome`; nixpkgs 25.05 packaged the
+#      older registry build at `chrome-linux/chrome`, which could never line
+#      up. 26.05 tracks Chrome for Testing so that particular mismatch is
+#      gone, which is the point: the coupling is more than a version number.
 #   3. `playwright install` writes into PLAYWRIGHT_BROWSERS_PATH (a
 #      `__dirlock`, a `.links/` directory), and /nix/store is read-only. It
 #      does not fail -- it retries the lock 20 times over ten minutes in

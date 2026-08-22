@@ -2,9 +2,9 @@
   description = "NixOS‑style dev‑profile collection (used with nix‑direnv)";
   
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     # Import the WSL module from the nixos-wsl flake (makes the `wsl` attribute set available).
-    nixos-wsl.url   = "github:nix-community/nixos-wsl/release-25.05";
+    nixos-wsl.url   = "github:nix-community/nixos-wsl/release-26.05";
   };
 
   outputs = { self, nixpkgs, nixos-wsl, ... }:

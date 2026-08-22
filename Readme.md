@@ -91,9 +91,8 @@ direnv allow
 > which *defines* `shellHook` as a shell variable but never executes it --
 > unlike `nix develop`, which does. Without the `eval` line the profile's
 > packages and environment variables still load, but nothing that runs on
-> shell entry does: no VSCode extension sync, and none of the per-profile
-> checks (such as the Playwright browser revision check in the `typescript`
-> profile).
+> shell entry does: no VSCode extension sync, and nothing a profile defines
+> in its own `shellHook`.
 >
 > Existing `.envrc` files written before this was documented are missing the
 > line. Add it and re-run `direnv allow`; you can tell it took effect because

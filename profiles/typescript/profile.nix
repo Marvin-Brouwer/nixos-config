@@ -12,46 +12,33 @@ in
       pkgs.eslint
       pkgs.pnpm
       pkgs.esbuild
-      # The browsers npm-installed Playwright downloads for itself are linked
-      # against an FHS layout NixOS doesn't have. They install without
-      # complaint (Playwright's own "no chromium-based browser found" check
-      # passes, the binary really is there) and then die the instant they
-      # launch, as a "Protocol error (Browser.getVersion): Internal server
-      # error, session closed". These are the same browsers patched for Nix.
+      # Playwright browsers come from `playwright install` and are made
+      # runnable by programs.nix-ld.libraries in configuration.nix; see
+      # ./playwright.nix for why this profile does not ship
+      # pkgs.playwright-driver.browsers.
       #
-      # A plain `pkgs.chromium` is enough to *run* tests, since Playwright
-      # accepts an `executablePath`, but not for `playwright test --ui`: that
-      # window always goes through the browser registry. Hence the driver's
-      # browser bundle for a dev profile.
-      playwright.browsers
-      # Escape hatch for when the revisions no longer line up -- see
-      # ./playwright.nix. Drops into an FHS sandbox where Playwright can
-      # download and run its own browsers, whatever version it is on.
+      # Fallback if nix-ld leaves something uncovered: an FHS sandbox where
+      # the downloaded binaries run unmodified.
       playwright.fhs
+      # Second fallback, for projects that accept an `executablePath` (in
+      # five-dice, via PLAYWRIGHT_CHROMIUM_PATH). Bypasses browser
+      # resolution entirely, so neither revision nor layout matters, but it
+      # does not cover `playwright test --ui`.
+      pkgs.chromium
     ];
     extensions = import ./vscode.nix;
     env = {
       NODE_OPTIONS = "--max-old-space-size=4096";
 
-      # NOTE: the browser revision has to match the Playwright version, or the
-      # lookup fails instead of the launch. Playwright resolves browsers by
-      # revision number out of `playwright-core/browsers.json` (1.62.1 wants
-      # Chromium r1234), and nixpkgs trails upstream Playwright, so a
-      # project-side bump can outrun this at any time. `playwright.browserCheck`
-      # reports the gap on shell entry; `playwright-fhs` is the way through it.
-      PLAYWRIGHT_BROWSERS_PATH = "${playwright.browsers}";
-      # Stop npm's postinstall re-downloading the broken ones over the top.
-      # For the same reason, never run `playwright install` here -- the
-      # browsers come from the store path above. Drive tests with the
-      # project's own CLI (`npx playwright test`), so the CLI version and the
-      # browser revisions stay in step; there is deliberately no global
-      # `playwright` on PATH. Inside `playwright-fhs` both of these are
-      # reversed, because there the downloads are the point.
-      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+      # Playwright validates the host against a list of known Linux
+      # distributions and refuses to recognise NixOS. The check is advisory;
+      # the browsers themselves run fine once nix-ld can load them.
+      #
+      # Note there is deliberately no PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD here:
+      # it only suppresses the npm postinstall hook (an explicit
+      # `playwright install` downloads regardless), and under nix-ld the
+      # download is what we want.
       PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
     };
-    shellHook = ''
-      ${playwright.browserCheck}
-    '';
   };
 }

@@ -34,8 +34,19 @@
     lfs.enable = true;
   };
 
-  # nix-ld: compatibility shim for dynamically linked binaries (e.g. VS Code Server's node)
-  programs.nix-ld.enable = true;
+  # nix-ld: compatibility shim for dynamically linked binaries (e.g. VS Code
+  # Server's node, and every prebuilt binary the npm ecosystem downloads).
+  #
+  # The library list is what makes browsers work: Playwright, Puppeteer and
+  # friends fetch ordinary dynamically-linked ELF builds that expect an FHS
+  # layout. Without these they install cleanly and then die the moment they
+  # launch, as "Protocol error (Browser.getVersion): Internal server error,
+  # session closed". With them, `playwright install` and `playwright test`
+  # behave the way the docs say, with nothing set per project.
+  programs.nix-ld = {
+    enable = true;
+    libraries = import ./lib/browser-libs.nix { inherit pkgs lib; };
+  };
 
   # direnv + nix-direnv: the NixOS module writes the shell hook into /etc/bashrc
   # (sourced for every bash session) and configures the direnvrc for nix-direnv,

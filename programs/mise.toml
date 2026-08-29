@@ -10,6 +10,15 @@
 # -----------------------------------------------------------------
 
 [settings]
+# Both the lockfile and the enter hook below are gated behind this. Without it
+# mise warns about the hook and silently skips writing mise.lock, which is a
+# quiet way to lose the reproducibility the lockfile is here for.
+#
+# It is a broader switch than either feature: it opts into every experimental
+# feature, and jdx uses it as a beta flag as well. There is no narrower one, and
+# the hook is not optional for plugin sync, so this is the price of both.
+experimental = true
+
 # mise defaults this to true on NixOS, on the assumption that precompiled glibc
 # binaries cannot run here. programs.nix-ld is what makes them run, so take the
 # binaries: building every runtime from source is slow and needs a toolchain
@@ -22,6 +31,10 @@ all_compile = false
 # Pin resolved versions per project. The spec in a repo's mise.toml can
 # still float (node = "lts"); the lock records what every machine
 # actually installs, and `mise up` bumps it when you decide to.
+#
+# Stated explicitly rather than relying on the default: older mise defaults it
+# to true, newer mise needs it set before it will create a lockfile that does
+# not already exist.
 lockfile = true
 
 # mise.toml is the single source of truth for this box. .nvmrc,

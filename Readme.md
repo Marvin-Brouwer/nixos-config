@@ -85,13 +85,19 @@ node does not fight anything else on the box.
 
 ```bash
 cd ~/repos/my-project
-repoconfig me@example.com   # git identity, mise.toml, trust, local ignores
+repoconfig me@example.com   # git identity, mise.toml and mise.lock, trust, local ignores
 mise use node@lts           # records the tool, and its resolved version in mise.lock
 ```
 
 Both files are meant to be committed. `mise.toml` is the spec and can float
 (`node = "lts"`), `mise.lock` records the exact version every machine installs, and
 `mise up` bumps it when you decide to.
+
+> [!IMPORTANT]
+> mise never creates `mise.lock` on its own, it only maintains one that already
+> exists, and it says nothing when there is none. A repo without the file silently
+> gets no version pinning at all. That is what `repoconfig` creating it is for; by
+> hand it is `touch mise.lock && mise install`.
 
 A contributor who does not use mise is not blocked by any of this: point them at
 the standard file for their stack instead, `.nvmrc` or `packageManager` in

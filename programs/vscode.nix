@@ -37,7 +37,24 @@ let
   sync = pkgs.writeShellScriptBin "vscode-sync" ''
     ${profileName}
 
+    # Only act inside a repo this setup manages.
+    #
+    # The enter hook lives in the system mise config, so mise fires it on every
+    # directory change anywhere on the box, not just in projects. Without this
+    # guard, a `cd /mnt/c` syncs a VSCode profile called "c" and rewrites the
+    # shared WSL extension set to match a directory that is not a project at
+    # all, silently uninstalling whatever the last real project had installed.
+    #
+    # A mise.toml is what marks a repo as managed here; `repoconfig` writes one.
+    if ! ${pkgs.git}/bin/git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      exit 0
+    fi
+
     REPO_ROOT="$(repo_root)"
+    if [ ! -f "$REPO_ROOT/mise.toml" ] && [ ! -f "$REPO_ROOT/.mise.toml" ]; then
+      exit 0
+    fi
+
     PROFILE="$(profile_name)"
     EXT_FILE="$REPO_ROOT/.vscode/extensions.json"
 

@@ -114,7 +114,25 @@ Two lists get unioned on entering a project:
 
 Anything in that file's `unwantedRecommendations` is removed again. The result is
 installed into a VSCode profile named after the repo directory, on both the Windows
-and WSL sides. Run `vscode-sync` by hand to force a re-check.
+and WSL sides.
+
+The sync runs detached so entering a directory never waits on the network, which
+means it can still be working after the prompt comes back. To wait for it before
+opening the editor:
+
+```bash
+vscode-sync --wait
+```
+
+`vscode-sync` on its own forces a re-check, and `VSCODE_SYNC_FOREGROUND=1
+vscode-sync` runs it attached so you can watch what it does.
+
+> [!IMPORTANT]
+> The installed set is made to equal the desired set exactly, so anything not in
+> either list gets uninstalled, including extensions VSCode ships with. The base
+> list therefore has to carry infrastructure as well as preferences, which is why
+> `ms-vscode-remote.remote-wsl` is in it. Without that entry the sync builds
+> profiles that cannot open a WSL folder at all.
 
 > [!NOTE]
 > The sync only fires inside a trusted mise project, so a repo needs a `mise.toml`

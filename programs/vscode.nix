@@ -37,6 +37,23 @@ let
   sync = pkgs.writeShellScriptBin "vscode-sync" ''
     ${profileName}
 
+    MARKER_DIR="''${HOME}/.config/nixos-vscode-profiles"
+    LOCK_FILE="''${MARKER_DIR}/sync.lock"
+    ${pkgs.coreutils}/bin/mkdir -p "$MARKER_DIR"
+
+    # `vscode-sync --wait` blocks until any running sync has finished. The sync
+    # detaches itself, so without this there is no way to tell a finished sync
+    # from one still working, and opening VSCode too early gets a half-applied
+    # extension set.
+    if [ "''${1:-}" = "--wait" ]; then
+      if ! ${pkgs.util-linux}/bin/flock -n "$LOCK_FILE" true; then
+        echo "[vscode] Waiting for the running sync to finish..."
+      fi
+      ${pkgs.util-linux}/bin/flock "$LOCK_FILE" true
+      echo "[vscode] Sync idle."
+      exit 0
+    fi
+
     # Only act inside a repo this setup manages.
     #
     # The enter hook lives in the system mise config, so mise fires it on every
@@ -57,10 +74,7 @@ let
 
     PROFILE="$(profile_name)"
     EXT_FILE="$REPO_ROOT/.vscode/extensions.json"
-
-    MARKER_DIR="''${HOME}/.config/nixos-vscode-profiles"
     MARKER_FILE="''${MARKER_DIR}/''${PROFILE}.hash"
-    ${pkgs.coreutils}/bin/mkdir -p "$MARKER_DIR"
 
     # --- Windows VSCode: default the integrated terminal to this distro ---
     # Marker-guarded, so this is a file test on every run but the first.
@@ -139,6 +153,16 @@ let
     # so entering a directory never blocks on the network.
     if [ -z "''${VSCODE_SYNC_FOREGROUND:-}" ]; then
       VSCODE_SYNC_FOREGROUND=1 "$0" "$@" &
+      exit 0
+    fi
+
+    # One global lock rather than one per profile, because the WSL extension set
+    # is shared across every profile. Two syncs for different projects would
+    # otherwise interleave install and uninstall calls against the same set and
+    # leave whichever finished last as the winner.
+    exec 9>"$LOCK_FILE"
+    if ! ${pkgs.util-linux}/bin/flock -n 9; then
+      echo "[vscode] Another sync is already running, leaving it to finish."
       exit 0
     fi
 

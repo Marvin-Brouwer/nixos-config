@@ -1,5 +1,9 @@
 { config, pkgs, lib, ... }:
 
+let
+  vscode = import ./programs/vscode.nix { inherit pkgs lib; };
+  playwright = import ./tools/playwright.nix { inherit pkgs lib; };
+in
 {
   # Configure network identity
   networking.hostName = "nix-wsl";
@@ -12,13 +16,34 @@
     };
   };
 
-  # System-wide packages
+  # System-wide packages.
+  #
+  # Language runtimes are deliberately absent: those come from mise, per
+  # project, so a repo pinned to an old node does not fight the system. What
+  # lives here is the machine itself, plus anything needed before you are
+  # inside a project at all.
   environment.systemPackages = with pkgs; [
     librewolf
     # git itself comes from programs.git below
     gh
     curl
     wget  # required by VS Code Remote-WSL to download the server
+
+    # Was in templates/profile.nix's defaultPackages, which every dev shell
+    # inherited. There are no dev shells now, and neither is version
+    # sensitive per project, so they belong to the machine.
+    jq
+    htop
+
+    # Per-project tool versions. See programs/mise.toml.
+    mise
+
+    # VSCode plugin sync, and the wrapper that opens this repo's profile.
+    vscode.sync
+    vscode.wrapper
+
+    # Break-glass FHS sandbox for when nix-ld does not cover a browser.
+    playwright
   ];
 
   # git-lfs is enabled system-wide rather than per profile: it is a general
@@ -34,40 +59,75 @@
     lfs.enable = true;
   };
 
-  # nix-ld: compatibility shim for dynamically linked binaries (e.g. VS Code
-  # Server's node, and every prebuilt binary the npm ecosystem downloads).
+  # nix-ld: compatibility shim for dynamically linked binaries.
   #
-  # The library list is what makes browsers work: Playwright, Puppeteer and
-  # friends fetch ordinary dynamically-linked ELF builds that expect an FHS
-  # layout. Without these they install cleanly and then die the moment they
-  # launch, as "Protocol error (Browser.getVersion): Internal server error,
-  # session closed". With them, `playwright install` and `playwright test`
-  # behave the way the docs say, with nothing set per project.
+  # Now that tool versions come from mise, this is what makes the whole
+  # toolchain run, not just browsers: node, pnpm and the .NET SDK all arrive
+  # as ordinary vendor builds expecting an FHS layout NixOS does not have.
+  # Without the shim they install cleanly and then fail to start at all.
+  #
+  # For browsers specifically the symptom is different and more confusing:
+  # Playwright and Puppeteer install fine and die the moment they launch, as
+  # "Protocol error (Browser.getVersion): Internal server error, session
+  # closed". With the libraries in place, `playwright install` and
+  # `playwright test` behave the way the docs say, with nothing per project.
   programs.nix-ld = {
     enable = true;
-    libraries = import ./lib/browser-libs.nix { inherit pkgs lib; };
+    libraries = import ./lib/nix-ld-libs.nix { inherit pkgs lib; };
   };
 
-  # direnv + nix-direnv: the NixOS module writes the shell hook into /etc/bashrc
-  # (sourced for every bash session) and configures the direnvrc for nix-direnv,
-  # so the hook is active on every terminal start without any manual setup.
-  programs.direnv = {
-    enable = true;
-    nix-direnv.enable = true;
+  # mise: per-project tool versions, replacing the flake dev-shells and
+  # direnv that used to live here.
+  #
+  # The settings file is real TOML in this repo rather than an inline string,
+  # so it stays readable and greppable. Project tooling is not declared in it;
+  # each repo carries its own mise.toml, because a version inherited from a
+  # parent config never lands in that project's mise.lock.
+  environment.etc."mise/config.toml".source = ./programs/mise.toml;
+
+  # Activation goes here rather than in setup.sh, the same way programs.direnv
+  # used to write its hook into /etc/bashrc. Hand-written shell rc hooks were
+  # the old mistake; setup.sh's reset_all exists to clean them up.
+  programs.bash.interactiveShellInit = ''
+    eval "$(mise activate bash)"
+  '';
+
+  # These used to be exported by the dev shells, via defaultEnv in
+  # templates/profile.nix and the typescript profile's own env block. With no
+  # dev shells they need a home, and all of them are facts about this machine
+  # rather than about any one project.
+  environment.sessionVariables = {
+    # librewolf as the default browser (privacy-focused, pre-compiled in the
+    # nixpkgs cache)
+    BROWSER = "librewolf";
+
+    EDITOR = "code -w";
+    LANG = "en_US.UTF-8";
+
+    # Playwright validates the host against a list of known Linux
+    # distributions and refuses to recognise NixOS. The check is advisory; the
+    # browsers themselves run fine once nix-ld can load them. This is a
+    # property of running on NixOS at all, so it belongs to the system rather
+    # than to a project.
+    #
+    # Note there is deliberately no PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD here: it
+    # only suppresses the npm postinstall hook (an explicit `playwright
+    # install` downloads regardless), and under nix-ld the download is what we
+    # want.
+    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
+
+    # A preference rather than a machine fact. A project that wants something
+    # different can override it in its own mise.toml [env].
+    NODE_OPTIONS = "--max-old-space-size=4096";
   };
 
-  # Set librewolf as the default browser (privacy-focused, pre-compiled in nixpkgs cache)
-  environment.sessionVariables.BROWSER = "librewolf";
   xdg.mime.defaultApplications = {
     "text/html" = "librewolf.desktop";
     "x-scheme-handler/http" = "librewolf.desktop";
     "x-scheme-handler/https" = "librewolf.desktop";
   };
 
-  # Keep nix-direnv derivations alive (prevents GC from removing dev shells)
   nix.settings = {
-    keep-outputs = true;
-    keep-derivations = true;
     experimental-features = [ "nix-command" "flakes" ];
   };
 

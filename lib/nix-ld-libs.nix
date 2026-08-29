@@ -1,24 +1,32 @@
 # -----------------------------------------------------------------
-# Shared library set for prebuilt browser binaries.
+# Shared library set for prebuilt, dynamically-linked binaries.
+#
+# This used to be about browsers only. Since tool versions come from mise
+# now, it is load-bearing for everything: mise downloads ordinary vendor
+# builds (node from nodejs.org, dotnet from Microsoft) that expect an FHS
+# layout NixOS does not have, and without nix-ld they fail to start at all
+# with a bare "no such file or directory".
 #
 # Two consumers, deliberately the same list:
 #
-#   * `programs.nix-ld.libraries` in configuration.nix -- makes the browsers
-#     npm packages download for themselves runnable, since they are ordinary
-#     dynamically-linked ELF binaries expecting an FHS layout NixOS lacks.
-#     This is what makes `playwright install` + `playwright test` work with
-#     no project-specific configuration.
+#   * `programs.nix-ld.libraries` in configuration.nix -- makes everything
+#     mise and npm download for themselves runnable, with no per-project
+#     configuration.
 #
-#   * `playwright-fhs` in profiles/typescript/playwright.nix -- the fallback
-#     sandbox, for whatever nix-ld turns out not to cover.
+#   * `playwright-fhs` in tools/playwright.nix -- the fallback sandbox, for
+#     whatever nix-ld turns out not to cover.
 #
-# Roughly Playwright's own `install-deps` list for Ubuntu, translated to
-# nixpkgs. webkit needs a longer tail than chromium and firefox do. To check
-# it against reality rather than trusting it, install a browser and look for
-# what is still missing:
+# The browser entries are roughly Playwright's own `install-deps` list for
+# Ubuntu, translated to nixpkgs. webkit needs a longer tail than chromium
+# and firefox do. To check it against reality rather than trusting it,
+# install a browser and look for what is still missing:
 #
 #   pnpm exec playwright install chromium
 #   ldd ~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome | grep 'not found'
+#
+# The same trick works for anything mise installs:
+#
+#   ldd ~/.local/share/mise/installs/node/*/bin/node | grep 'not found'
 # -----------------------------------------------------------------
 
 { pkgs, lib }:
@@ -31,6 +39,13 @@ in
 (with pkgs; [
   # libstdc++ etc. -- the first thing a vendor binary trips over
   stdenv.cc.cc.lib
+
+  # Wanted by mise-installed runtimes rather than by browsers. The .NET SDK
+  # is the fussiest of them: it needs openssl and krb5 on top of the icu
+  # further down this list.
+  openssl
+  zlib
+  krb5
 
   alsa-lib
   at-spi2-atk

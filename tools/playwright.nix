@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------
-# Playwright support for the TypeScript profile.
+# Playwright fallback sandbox.
 #
 # The primary mechanism is not here: it is `programs.nix-ld.libraries` in
 # configuration.nix, which makes the browsers Playwright downloads for
@@ -29,12 +29,16 @@
 # cover: an FHS sandbox where the downloaded binaries run unmodified. It is
 # a bigger hammer than the executablePath route (it covers UI mode, which
 # always goes through the browser registry) and needs no project support.
+#
+# It used to be a package inside the TypeScript dev shell. There are no dev
+# shells any more, so it is installed system-wide and available as the
+# `playwright-fhs` command from anywhere.
 # -----------------------------------------------------------------
 
 { pkgs, lib }:
 
 let
-  browserLibs = import ../../lib/browser-libs.nix { inherit pkgs lib; };
+  browserLibs = import ../lib/nix-ld-libs.nix { inherit pkgs lib; };
 
   fhs = pkgs.buildFHSEnv {
     name = "playwright-fhs";
@@ -42,6 +46,11 @@ let
       p:
       browserLibs
       ++ (with p; [
+        # mise, so the project's own pinned node and pnpm are reachable
+        # inside the sandbox rather than a second, different node.
+        mise
+        # ...but keep a working node here too, so the sandbox is still
+        # useful as break-glass in a repo that has no mise.toml.
         nodejs_24
         pnpm
         cacert
@@ -55,6 +64,4 @@ let
   };
 
 in
-{
-  inherit fhs;
-}
+fhs

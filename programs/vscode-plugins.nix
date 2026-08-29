@@ -1,12 +1,23 @@
 # -----------------------------------------------------------------
-# Base list of VSCode extension IDs that all profiles inherit.
+# My personal base VSCode plugin list.
 #
-# These are marketplace extension IDs (publisher.name format).
-# The dev shell installs them into a named VSCode Profile via
-# `code --install-extension` and launches VSCode with that profile.
+# These are the ones I want everywhere regardless of what a project is
+# written in. They are mine, not a project's, so they never belong in a
+# repo's .vscode/extensions.json.
+#
+# A project's own plugins live in its .vscode/extensions.json, which is
+# the standard file VSCode already prompts contributors to install.
+# programs/vscode.nix unions the two, so this list is the "on top of my
+# default profile" half.
+#
+# Marketplace IDs, publisher.name format.
+#
+# TODO: this list is still carried over verbatim from the old
+# templates/vscode.nix and mixes in a few genuinely project-level
+# plugins (eslint, prettier, EditorConfig, redhat.vscode-yaml). Those
+# belong in each repo's extensions.json instead. Prune them when writing
+# docs/examples/ts.md, deliberately rather than in passing.
 # -----------------------------------------------------------------
-
-{ extra ? [] }:
 
 [
   "jnoortheen.nix-ide"
@@ -55,4 +66,4 @@
   "meronz.manpages"
   "maattdd.gitless" # or eamodio.gitlens
   "anthropic.claude-code"
-] ++ extra
+]

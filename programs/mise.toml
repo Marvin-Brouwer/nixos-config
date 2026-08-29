@@ -1,0 +1,28 @@
+# -----------------------------------------------------------------
+# System-wide mise settings, installed to /etc/mise/config.toml by
+# environment.etc in configuration.nix.
+#
+# Project tooling is NOT declared here. Each repo carries its own
+# mise.toml, because locking is scoped to a config root: tools inherited
+# from a global or parent config never land in the project's own
+# mise.lock, which is exactly the cross-machine drift this is meant to
+# stop.
+# -----------------------------------------------------------------
+
+[settings]
+# Pin resolved versions per project. The spec in a repo's mise.toml can
+# still float (node = "lts"); the lock records what every machine
+# actually installs, and `mise up` bumps it when you decide to.
+lockfile = true
+
+# mise.toml is the single source of truth for this box. .nvmrc,
+# package.json and global.json stay in project repos as documentation
+# for contributors who don't run mise, but mise itself ignores them so
+# there is never a question of which file won.
+idiomatic_version_file_enable_tools = []
+
+[hooks]
+# Sync VSCode plugins on entering a project. See programs/vscode.nix.
+# Only fires inside a trusted mise project, so a repo needs a mise.toml
+# and one `mise trust`.
+enter = "vscode-sync"

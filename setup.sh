@@ -5,10 +5,9 @@
 # What it does:
 #   0. Reset all previous configuration back to defaults.
 #   1. Enable flakes in the user's nix config.
-#   2. Configure direnv to use nix-direnv for flake-based dev shells.
-#   3. Symlink /etc/nixos to this repo so nixos-rebuild auto-detects the flake.
-#   4. Rebuild the NixOS system (installs direnv, nix-direnv, etc. system-wide).
-#   5. Set up VSCode default settings for WSL development.
+#   2. Symlink /etc/nixos to this repo so nixos-rebuild auto-detects the flake.
+#   3. Rebuild the NixOS system (installs mise, nix-ld, etc. system-wide).
+#   4. Set up the global gitignore and VSCode for WSL development.
 # ------------------------------------------------------------
 
 set -euo pipefail
@@ -44,8 +43,10 @@ reset_all() {
     sed -i '/experimental-features = nix-command flakes/d' "${conf_file}"
   fi
 
-  # Direnv shell hook – remove any lines written by older versions of this script.
-  # Current setup relies on programs.direnv in configuration.nix (writes to /etc/bashrc).
+  # Direnv shell hook – remove lines written by older versions of this script.
+  # direnv is gone entirely: per-project tooling comes from mise now, and its
+  # shell hook is written to /etc/bashrc by programs.bash.interactiveShellInit
+  # in configuration.nix.
   local rc_file
   rc_file="$(get_rc_file)"
   if [[ -n "${rc_file}" && -f "${rc_file}" ]]; then
@@ -56,11 +57,19 @@ reset_all() {
   fi
 
   # Direnvrc – remove if written by an older version of this script.
-  # nix-direnv integration is now handled by programs.direnv.nix-direnv in NixOS.
   local direnvrc_file="${HOME}/.config/direnv/direnvrc"
   if [[ -f "${direnvrc_file}" ]]; then
     info "Removing legacy ${direnvrc_file}"
     rm -f "${direnvrc_file}"
+  fi
+
+  # Global gitignore – drop the direnv entries older versions added. They are
+  # meaningless now and would just sit in everyone's config forever.
+  local ignore_file="${HOME}/.config/git/ignore"
+  if [[ -f "${ignore_file}" ]]; then
+    info "Removing obsolete direnv entries from ${ignore_file}"
+    sed -i '/^\.direnv\/$/d; /^\.envrc$/d' "${ignore_file}"
+    sed -i '/# nix-direnv cache/d; /# direnv config/d' "${ignore_file}"
   fi
 
   # /etc/nixos symlink
@@ -103,13 +112,13 @@ link_etc_nixos() {
   sudo ln -sfn "${SCRIPT_DIR}" /etc/nixos
 }
 
-# ---------- 4. Rebuild the WSL system ----------
+# ---------- 3. Rebuild the WSL system ----------
 rebuild_wsl() {
   info "Rebuilding the NixOS-WSL system (may take a few minutes)..."
   sudo nixos-rebuild switch --flake "${SCRIPT_DIR}#nix-wsl"
 }
 
-# ---------- 5. Set up global gitignore ----------
+# ---------- 4. Set up global gitignore ----------
 setup_global_gitignore() {
   local ignore_dir="${HOME}/.config/git"
   local ignore_file="${ignore_dir}/ignore"
@@ -117,10 +126,13 @@ setup_global_gitignore() {
   mkdir -p "${ignore_dir}"
   touch "${ignore_file}"
 
-  # Entries to ensure are present (pattern + comment pairs)
+  # Entries to ensure are present (pattern + comment pairs).
+  #
+  # mise.toml and mise.lock are deliberately NOT here: both are meant to be
+  # committed, so a project's tool versions travel with it. Only the local
+  # override file is personal.
   local -a entries=(
-    ".direnv/:# nix-direnv cache (per-project shell environment)"
-    ".envrc:# direnv config (per-project, may contain local paths)"
+    "mise.local.toml:# mise local overrides (personal, never committed)"
   )
 
   local changed=0
@@ -141,7 +153,7 @@ setup_global_gitignore() {
   fi
 }
 
-# ---------- 6. Install VSCode WSL Remote extension on Windows ----------
+# ---------- 5. Install VSCode WSL Remote extension on Windows ----------
 setup_vscode_wsl() {
   if ! command -v cmd.exe >/dev/null 2>&1; then
     warn "cmd.exe not found — skipping Windows VSCode setup."
@@ -175,10 +187,13 @@ main() {
   echo "    wsl --shutdown"
   echo "    wsl"
   echo
-  echo "After restart, you can use dev-shells in any project:"
+  echo "After restart, set up a project with mise:"
   echo "    cd ~/repos/my-project"
-  echo '    echo -e '"'"'use flake ~/nixos-config#typescript\neval "$shellHook"'"'"' > .envrc'
-  echo "    direnv allow"
+  echo "    mise use node@lts       # writes mise.toml and mise.lock"
+  echo "    mise trust              # allow this project's config to load"
+  echo
+  echo "VSCode plugins come from the project's .vscode/extensions.json,"
+  echo "unioned with your base list in programs/vscode-plugins.nix."
   echo
 
   info "Reloading shell to activate hooks in the current session..."

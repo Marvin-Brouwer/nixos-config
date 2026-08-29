@@ -168,6 +168,21 @@ let
 
     FAIL=0
 
+    # `code --install-extension` exits 0 even when it installs nothing, which it
+    # does for an ID that has been renamed or pulled from the marketplace. Left
+    # unchecked the sync reports success, writes the marker, and the fast path
+    # then suppresses every future attempt, so the plugin is missing forever and
+    # nothing ever says so. Re-read the installed set afterwards and complain.
+    report_missing() { # label  installed-list
+      local label="$1" installed="$2"
+      for ext in $DESIRED_EXTS; do
+        if ! echo "$installed" | ${pkgs.gnugrep}/bin/grep -qx "$ext"; then
+          echo "[vscode] [$label] NOT INSTALLED: $ext (check the extension ID)"
+          FAIL=1
+        fi
+      done
+    }
+
     # --- Windows side: install into the named VS Code profile ---
     # cmd.exe cannot use a UNC path as its working directory, hence the cd.
     # The WSL `code` wrapper does not support --profile, the Windows CLI does.
@@ -197,6 +212,8 @@ let
           win_code --uninstall-extension "$ext" >/dev/null 2>&1
         fi
       done
+
+      report_missing win "$(win_code --list-extensions 2>/dev/null | ${pkgs.coreutils}/bin/tr '[:upper:]' '[:lower:]')"
     fi
 
     # --- WSL side: install into the VS Code remote server ---
@@ -220,6 +237,8 @@ let
           code --uninstall-extension "$ext" >/dev/null 2>&1
         fi
       done
+
+      report_missing wsl "$(code --list-extensions 2>/dev/null | ${pkgs.coreutils}/bin/tr '[:upper:]' '[:lower:]')"
     fi
 
     # Only record the hash if everything landed, so a failure retries next time.
@@ -227,7 +246,7 @@ let
       printf '%s\n' "$DESIRED_HASH" > "$MARKER_FILE"
       echo "[vscode] Profile '$PROFILE' is up to date."
     else
-      echo "[vscode] Some plugins failed to install. Will retry next time."
+      echo "[vscode] Some plugins did not install. Will retry next time."
     fi
   '';
 

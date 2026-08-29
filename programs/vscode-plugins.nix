@@ -12,11 +12,10 @@
 #
 # Marketplace IDs, publisher.name format.
 #
-# TODO: this list is still carried over verbatim from the old
-# templates/vscode.nix and mixes in a few genuinely project-level
-# plugins (eslint, prettier, EditorConfig, redhat.vscode-yaml). Those
-# belong in each repo's extensions.json instead. Prune them when writing
-# docs/examples/ts.md, deliberately rather than in passing.
+# TODO: this list mixes in a few genuinely project-level plugins (eslint,
+# prettier, EditorConfig, redhat.vscode-yaml). Those belong in each repo's
+# extensions.json instead. Prune them when writing docs/examples/ts.md,
+# deliberately rather than in passing.
 # -----------------------------------------------------------------
 
 [

@@ -9,9 +9,8 @@ project, because nixpkgs only carries the runtime majors it packages and arbitra
 versions are the one thing it cannot give you.
 
 > [!NOTE]
-> The mise migration has landed, but the docs are not finished. The `repoconfig`
-> command and the `docs/examples/` walkthroughs are still to come, see
-> [issue #15](https://github.com/Marvin-Brouwer/nixos-config/issues/15).
+> The `repoconfig` command and the `docs/examples/` walkthroughs are not written
+> yet, see [issue #15](https://github.com/Marvin-Brouwer/nixos-config/issues/15).
 
 ## Structure
 
@@ -86,8 +85,8 @@ node does not fight anything else on the box.
 
 ```bash
 cd ~/repos/my-project
-mise use node@lts   # writes mise.toml, and mise.lock with the resolved version
-mise trust          # allow this project's config to load
+repoconfig me@example.com   # git identity, mise.toml, trust, local ignores
+mise use node@lts           # records the tool, and its resolved version in mise.lock
 ```
 
 Both files are meant to be committed. `mise.toml` is the spec and can float

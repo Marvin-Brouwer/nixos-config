@@ -25,14 +25,11 @@
 #      does not fail -- it retries the lock 20 times over ten minutes in
 #      silence, presenting as a command that hangs with no output.
 #
-# `playwright-fhs` below stays as a fallback for whatever nix-ld does not
-# cover: an FHS sandbox where the downloaded binaries run unmodified. It is
-# a bigger hammer than the executablePath route (it covers UI mode, which
-# always goes through the browser registry) and needs no project support.
-#
-# It used to be a package inside the TypeScript dev shell. There are no dev
-# shells any more, so it is installed system-wide and available as the
-# `playwright-fhs` command from anywhere.
+# `playwright-fhs` below is the fallback for whatever nix-ld does not cover:
+# an FHS sandbox where the downloaded binaries run unmodified. It is a bigger
+# hammer than the executablePath route (it covers UI mode, which always goes
+# through the browser registry) and needs no project support. Installed
+# system-wide, so it is available as a command from anywhere.
 # -----------------------------------------------------------------
 
 { pkgs, lib }:

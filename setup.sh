@@ -43,10 +43,8 @@ reset_all() {
     sed -i '/experimental-features = nix-command flakes/d' "${conf_file}"
   fi
 
-  # Direnv shell hook – remove lines written by older versions of this script.
-  # direnv is gone entirely: per-project tooling comes from mise now, and its
-  # shell hook is written to /etc/bashrc by programs.bash.interactiveShellInit
-  # in configuration.nix.
+  # Direnv shell hook – strip any direnv lines from the shell rc. mise's hook
+  # is written to /etc/bashrc by programs.bash.interactiveShellInit instead.
   local rc_file
   rc_file="$(get_rc_file)"
   if [[ -n "${rc_file}" && -f "${rc_file}" ]]; then
@@ -56,15 +54,14 @@ reset_all() {
     sed -i '/eval "\$(nix-direnv)"/d' "${rc_file}"
   fi
 
-  # Direnvrc – remove if written by an older version of this script.
+  # Direnvrc – remove it, nothing reads it.
   local direnvrc_file="${HOME}/.config/direnv/direnvrc"
   if [[ -f "${direnvrc_file}" ]]; then
     info "Removing legacy ${direnvrc_file}"
     rm -f "${direnvrc_file}"
   fi
 
-  # Global gitignore – drop the direnv entries older versions added. They are
-  # meaningless now and would just sit in everyone's config forever.
+  # Global gitignore – drop the direnv entries, nothing reads them.
   local ignore_file="${HOME}/.config/git/ignore"
   if [[ -f "${ignore_file}" ]]; then
     info "Removing obsolete direnv entries from ${ignore_file}"

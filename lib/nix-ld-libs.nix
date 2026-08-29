@@ -1,11 +1,10 @@
 # -----------------------------------------------------------------
 # Shared library set for prebuilt, dynamically-linked binaries.
 #
-# This used to be about browsers only. Since tool versions come from mise
-# now, it is load-bearing for everything: mise downloads ordinary vendor
-# builds (node from nodejs.org, dotnet from Microsoft) that expect an FHS
-# layout NixOS does not have, and without nix-ld they fail to start at all
-# with a bare "no such file or directory".
+# Load-bearing for the whole toolchain: mise downloads ordinary vendor builds
+# (node from nodejs.org, dotnet from Microsoft) that expect an FHS layout
+# NixOS does not have, and without nix-ld they fail to start at all with a
+# bare "no such file or directory".
 #
 # Two consumers, deliberately the same list:
 #

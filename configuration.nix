@@ -29,9 +29,7 @@ in
     curl
     wget  # required by VS Code Remote-WSL to download the server
 
-    # Was in templates/profile.nix's defaultPackages, which every dev shell
-    # inherited. There are no dev shells now, and neither is version
-    # sensitive per project, so they belong to the machine.
+    # Not version sensitive per project, so they belong to the machine.
     jq
     htop
 
@@ -46,8 +44,8 @@ in
     playwright
   ];
 
-  # git-lfs is enabled system-wide rather than per profile: it is a general
-  # footgun, not a TypeScript one. Without the LFS filters registered in the
+  # git-lfs is enabled system-wide because it is a general footgun, not a
+  # per-language one. Without the LFS filters registered in the
   # gitconfig, LFS-tracked files check out as ~130-byte pointer stubs
   # (`version https://git-lfs.github.com/spec/v1`) instead of their contents,
   # and nothing warns you -- it only shows up much later as a confusing
@@ -61,23 +59,22 @@ in
 
   # nix-ld: compatibility shim for dynamically linked binaries.
   #
-  # Now that tool versions come from mise, this is what makes the whole
-  # toolchain run, not just browsers: node, pnpm and the .NET SDK all arrive
-  # as ordinary vendor builds expecting an FHS layout NixOS does not have.
-  # Without the shim they install cleanly and then fail to start at all.
+  # This is what makes the whole toolchain run. Everything mise installs, node
+  # and pnpm and the .NET SDK alike, arrives as an ordinary vendor build
+  # expecting an FHS layout NixOS does not have. Without the shim they install
+  # cleanly and then fail to start at all.
   #
-  # For browsers specifically the symptom is different and more confusing:
-  # Playwright and Puppeteer install fine and die the moment they launch, as
-  # "Protocol error (Browser.getVersion): Internal server error, session
-  # closed". With the libraries in place, `playwright install` and
-  # `playwright test` behave the way the docs say, with nothing per project.
+  # For browsers the symptom is different and more confusing: Playwright and
+  # Puppeteer install fine and die the moment they launch, as "Protocol error
+  # (Browser.getVersion): Internal server error, session closed". With the
+  # libraries in place, `playwright install` and `playwright test` behave the
+  # way the docs say, with nothing set per project.
   programs.nix-ld = {
     enable = true;
     libraries = import ./lib/nix-ld-libs.nix { inherit pkgs lib; };
   };
 
-  # mise: per-project tool versions, replacing the flake dev-shells and
-  # direnv that used to live here.
+  # mise: per-project tool versions.
   #
   # The settings file is real TOML in this repo rather than an inline string,
   # so it stays readable and greppable. Project tooling is not declared in it;
@@ -85,17 +82,13 @@ in
   # parent config never lands in that project's mise.lock.
   environment.etc."mise/config.toml".source = ./programs/mise.toml;
 
-  # Activation goes here rather than in setup.sh, the same way programs.direnv
-  # used to write its hook into /etc/bashrc. Hand-written shell rc hooks were
-  # the old mistake; setup.sh's reset_all exists to clean them up.
+  # Activation belongs in the system config rather than a hand-written shell
+  # rc, so the hook is active on every terminal with no manual setup.
   programs.bash.interactiveShellInit = ''
     eval "$(mise activate bash)"
   '';
 
-  # These used to be exported by the dev shells, via defaultEnv in
-  # templates/profile.nix and the typescript profile's own env block. With no
-  # dev shells they need a home, and all of them are facts about this machine
-  # rather than about any one project.
+  # Facts about this machine rather than about any one project.
   environment.sessionVariables = {
     # librewolf as the default browser (privacy-focused, pre-compiled in the
     # nixpkgs cache)
@@ -106,9 +99,8 @@ in
 
     # Playwright validates the host against a list of known Linux
     # distributions and refuses to recognise NixOS. The check is advisory; the
-    # browsers themselves run fine once nix-ld can load them. This is a
-    # property of running on NixOS at all, so it belongs to the system rather
-    # than to a project.
+    # browsers themselves run fine once nix-ld can load them. It is a property
+    # of running on NixOS at all, hence system-wide.
     #
     # Note there is deliberately no PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD here: it
     # only suppresses the npm postinstall hook (an explicit `playwright

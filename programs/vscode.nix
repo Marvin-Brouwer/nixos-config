@@ -1,9 +1,5 @@
 # -----------------------------------------------------------------
-# VSCode plugin sync.
-#
-# Was a shellHook inside templates/profile.nix, so it only ever ran when
-# direnv entered a dev shell. direnv is gone, so it is a real command now,
-# triggered by the mise `enter` hook in programs/mise.toml.
+# VSCode plugin sync, triggered by the mise `enter` hook in programs/mise.toml.
 #
 # What it installs is the union of two lists:
 #
@@ -15,8 +11,8 @@
 #
 # minus that file's `unwantedRecommendations`.
 #
-# The VSCode profile is named after the repo directory, since the plugin
-# set is now per-repo rather than per-language-profile.
+# The VSCode profile is named after the repo directory, because the plugin set
+# is per-repo.
 # -----------------------------------------------------------------
 
 { pkgs, lib }:

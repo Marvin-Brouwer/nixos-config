@@ -7,9 +7,9 @@
     nixos-wsl.url   = "github:nix-community/nixos-wsl/release-26.05";
   };
 
-  # There is deliberately no devShells output any more. Per-project tooling
-  # comes from mise, because nixpkgs only carries the runtime majors it
-  # packages and this setup exists to run whatever version a project asks for.
+  # There is deliberately no devShells output. Per-project tooling comes from
+  # mise, because nixpkgs only carries the runtime majors it packages and this
+  # setup exists to run whatever version a project asks for.
   # See programs/mise.toml.
   outputs = { self, nixpkgs, nixos-wsl, ... }:
     let

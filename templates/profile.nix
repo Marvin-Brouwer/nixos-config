@@ -6,6 +6,7 @@ let
   # Packages that appear in *every* dev shell
   defaultPackages = with pkgs; [
     git
+    git-lfs
     gh
     curl
     jq
@@ -21,6 +22,10 @@ let
     LANG   = "en_US.UTF-8";
   };
   finalEnv = defaultEnv // (profile.env or {});
+
+  # Anything the calling profile wants to run on shell entry, appended after
+  # the VSCode housekeeping below.
+  extraShellHook = profile.shellHook or "";
 
   # VSCode extension management
   profileName = profile.name or "default";
@@ -185,5 +190,5 @@ pkgs.mkShell (finalEnv // {
   '' + lib.optionalString (extensions != []) ''
     # Sync VSCode extensions in the background
     ${syncExtensionsScript} &
-  '';
+  '' + extraShellHook;
 })

@@ -79,16 +79,32 @@ Inside any directory where you want a particular profile loaded, create a .envrc
 Run (once per directory):
 
 ```bash
-echo 'use flake ~/nixos-config#typescript' > .envrc
+cat > .envrc <<'EOF'
+use flake ~/nixos-config#typescript
+eval "$shellHook"
+EOF
 direnv allow
 ```
 
+> [!IMPORTANT]
+> Both lines are needed. `use flake` runs `nix print-dev-env` under the hood,
+> which *defines* `shellHook` as a shell variable but never executes it --
+> unlike `nix develop`, which does. Without the `eval` line the profile's
+> packages and environment variables still load, but nothing that runs on
+> shell entry does: no VSCode extension sync, and nothing a profile defines
+> in its own `shellHook`.
+>
+> Existing `.envrc` files written before this was documented are missing the
+> line. Add it and re-run `direnv allow`; you can tell it took effect because
+> the first entry afterwards syncs your VSCode extensions.
+
 > [!NOTE] 
-> In this example `typescript` be replaced by any profile.
+> In this example `typescript` can be replaced by any profile.
 
 direnv will:
 
 - Detect the use flake … line.
-- Invoke nix develop .#typescript (or whichever attribute you asked for).
+- Build the `.#typescript` dev shell (or whichever attribute you asked for) and
+  import its environment.
 - Drop you into a shell where all packages defined in that profile are on $PATH, and the environment variables you exported are set.
 - You can also combine multiple profiles in a single .envrc by chaining use flake statements, but usually one profile per project is enough.

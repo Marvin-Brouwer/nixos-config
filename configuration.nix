@@ -15,14 +15,38 @@
   # System-wide packages
   environment.systemPackages = with pkgs; [
     librewolf
-    git
+    # git itself comes from programs.git below
     gh
     curl
     wget  # required by VS Code Remote-WSL to download the server
   ];
 
-  # nix-ld: compatibility shim for dynamically linked binaries (e.g. VS Code Server's node)
-  programs.nix-ld.enable = true;
+  # git-lfs is enabled system-wide rather than per profile: it is a general
+  # footgun, not a TypeScript one. Without the LFS filters registered in the
+  # gitconfig, LFS-tracked files check out as ~130-byte pointer stubs
+  # (`version https://git-lfs.github.com/spec/v1`) instead of their contents,
+  # and nothing warns you -- it only shows up much later as a confusing
+  # runtime error, e.g. an audio file that decodes to
+  # `EncodingError: Unable to decode audio data`. CI checkouts that pass
+  # `lfs: true` are unaffected, so this only bites local clones.
+  programs.git = {
+    enable = true;
+    lfs.enable = true;
+  };
+
+  # nix-ld: compatibility shim for dynamically linked binaries (e.g. VS Code
+  # Server's node, and every prebuilt binary the npm ecosystem downloads).
+  #
+  # The library list is what makes browsers work: Playwright, Puppeteer and
+  # friends fetch ordinary dynamically-linked ELF builds that expect an FHS
+  # layout. Without these they install cleanly and then die the moment they
+  # launch, as "Protocol error (Browser.getVersion): Internal server error,
+  # session closed". With them, `playwright install` and `playwright test`
+  # behave the way the docs say, with nothing set per project.
+  programs.nix-ld = {
+    enable = true;
+    libraries = import ./lib/browser-libs.nix { inherit pkgs lib; };
+  };
 
   # direnv + nix-direnv: the NixOS module writes the shell hook into /etc/bashrc
   # (sourced for every bash session) and configures the direnvrc for nix-direnv,

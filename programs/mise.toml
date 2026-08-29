@@ -10,6 +10,15 @@
 # -----------------------------------------------------------------
 
 [settings]
+# mise defaults this to true on NixOS, on the assumption that precompiled glibc
+# binaries cannot run here. programs.nix-ld is what makes them run, so take the
+# binaries: building every runtime from source is slow and needs a toolchain
+# this box deliberately does not carry. Node's ./configure alone wants python.
+#
+# mise's automatic NixOS default is deprecated anyway, removed in 2027.8.0, so
+# saying it explicitly is also the future-proof form.
+all_compile = false
+
 # Pin resolved versions per project. The spec in a repo's mise.toml can
 # still float (node = "lts"); the lock records what every machine
 # actually installs, and `mise up` bumps it when you decide to.

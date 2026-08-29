@@ -35,6 +35,9 @@ in
 
     # Per-project tool versions. See programs/mise.toml.
     mise
+    # mise verifies the OpenPGP signature on node releases with external gpg,
+    # and skips the check with a warning when it cannot find one.
+    gnupg
 
     # VSCode plugin sync, and the wrapper that opens this repo's profile.
     vscode.sync

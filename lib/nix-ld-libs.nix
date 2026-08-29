@@ -31,9 +31,22 @@
 { pkgs, lib }:
 
 let
-  # A few of these have moved between nixpkgs releases. Take whatever this
-  # channel actually has instead of failing to evaluate on the ones it lacks.
-  maybe = names: lib.filter (p: p != null) (map (n: pkgs.${n} or null) names);
+  # Existence check that does not force the value. That matters: a renamed
+  # attribute is a warning wrapped around the real package, so merely comparing
+  # it to null is enough to print the deprecation. Checking the path instead
+  # means an old spelling is never evaluated while the current one exists.
+  exists = name: lib.hasAttrByPath (lib.splitString "." name) pkgs;
+  lookup = name: lib.getAttrFromPath (lib.splitString "." name) pkgs;
+
+  # First spelling this channel actually has, or nothing. Names are tried in
+  # order, so put the current one first and older aliases after it.
+  firstAvailable = names:
+    if names == [ ] then [ ]
+    else if exists (lib.head names) then [ (lookup (lib.head names)) ]
+    else firstAvailable (lib.tail names);
+
+  # Each name independently optional.
+  maybe = names: lib.concatMap (n: firstAvailable [ n ]) names;
 in
 (with pkgs; [
   # libstdc++ etc. -- the first thing a vendor binary trips over
@@ -77,22 +90,27 @@ in
   pango
   systemd # libudev
   woff2
-  xorg.libX11
-  xorg.libXcomposite
-  xorg.libXcursor
-  xorg.libXdamage
-  xorg.libXext
-  xorg.libXfixes
-  xorg.libXi
-  xorg.libXrandr
-  xorg.libXtst
-  xorg.libxcb
-  xorg.libxshmfence
 
   # Fonts, or every screenshot renders as tofu
   dejavu_fonts
   liberation_ttf
 ])
+# Renamed between nixpkgs releases. Current name first, old alias second, so
+# this evaluates clean on either side of the rename.
+++ lib.concatMap firstAvailable [
+  [ "libx11" "xorg.libX11" ]
+  [ "libxcomposite" "xorg.libXcomposite" ]
+  [ "libxcursor" "xorg.libXcursor" ]
+  [ "libxdamage" "xorg.libXdamage" ]
+  [ "libxext" "xorg.libXext" ]
+  [ "libxfixes" "xorg.libXfixes" ]
+  [ "libxi" "xorg.libXi" ]
+  [ "libxrandr" "xorg.libXrandr" ]
+  [ "libxtst" "xorg.libXtst" ]
+  [ "libxcb" "xorg.libxcb" ]
+  [ "libxshmfence" "xorg.libxshmfence" ]
+  [ "enchant_2" "enchant2" ] # webkit spellcheck
+]
 ++ maybe [
   "libgbm" # split out of mesa in newer nixpkgs
   "mesa"
@@ -101,8 +119,7 @@ in
   "libpulseaudio"
   "libopus"
   "libvpx"
-  "enchant" # webkit spellcheck
-  "enchant2"
+  "enchant" # webkit spellcheck, v1 alongside the v2 above
   "flite" # webkit speech synthesis
   "libgudev"
 ]

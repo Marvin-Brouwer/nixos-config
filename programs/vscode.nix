@@ -41,10 +41,18 @@ let
     LOCK_FILE="''${MARKER_DIR}/sync.lock"
     ${pkgs.coreutils}/bin/mkdir -p "$MARKER_DIR"
 
-    # `vscode-sync --wait` blocks until any running sync has finished. The sync
-    # detaches itself, so without this there is no way to tell a finished sync
-    # from one still working, and opening VSCode too early gets a half-applied
-    # extension set.
+    # The mise hook passes --detach so entering a directory never waits on the
+    # network. Run by hand there is no reason to hide: staying in the foreground
+    # means you see what it does and know when it is finished.
+    DETACH=""
+    if [ "''${1:-}" = "--detach" ]; then
+      DETACH=1
+      shift
+    fi
+
+    # `vscode-sync --wait` blocks until a sync started by the hook has finished,
+    # so there is something to run before opening VSCode rather than guessing
+    # from scrollback.
     if [ "''${1:-}" = "--wait" ]; then
       if ! ${pkgs.util-linux}/bin/flock -n "$LOCK_FILE" true; then
         echo "[vscode] Waiting for the running sync to finish..."
@@ -149,10 +157,8 @@ let
       exit 0
     fi
 
-    # Slow path talks to the marketplace. Get off the shell's critical path
-    # so entering a directory never blocks on the network.
-    if [ -z "''${VSCODE_SYNC_FOREGROUND:-}" ]; then
-      VSCODE_SYNC_FOREGROUND=1 "$0" "$@" &
+    if [ -n "$DETACH" ]; then
+      "$0" "$@" &
       exit 0
     fi
 
@@ -177,7 +183,8 @@ let
       local label="$1" installed="$2"
       for ext in $DESIRED_EXTS; do
         if ! echo "$installed" | ${pkgs.gnugrep}/bin/grep -qx "$ext"; then
-          echo "[vscode] [$label] NOT INSTALLED: $ext (check the extension ID)"
+          echo "[vscode] [$label] NOT INSTALLED: $ext"
+          echo "[vscode] [$label]   try: code --install-extension $ext --force"
           FAIL=1
         fi
       done

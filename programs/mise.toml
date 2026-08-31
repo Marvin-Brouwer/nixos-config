@@ -46,4 +46,4 @@ idiomatic_version_file_enable_tools = []
 # Sync VSCode plugins on entering a project. See programs/vscode.nix.
 # Only fires inside a trusted mise project, so a repo needs a mise.toml
 # and one `mise trust`.
-enter = "vscode-sync"
+enter = "vscode-sync --detach"

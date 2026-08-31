@@ -116,16 +116,13 @@ Anything in that file's `unwantedRecommendations` is removed again. The result i
 installed into a VSCode profile named after the repo directory, on both the Windows
 and WSL sides.
 
-The sync runs detached so entering a directory never waits on the network, which
-means it can still be working after the prompt comes back. To wait for it before
-opening the editor:
+The mise hook runs it as `vscode-sync --detach` so entering a directory never
+waits on the network. Run by hand it stays in the foreground, so `vscode-sync`
+forces a re-check and you watch it finish. To wait on one the hook started:
 
 ```bash
 vscode-sync --wait
 ```
-
-`vscode-sync` on its own forces a re-check, and `VSCODE_SYNC_FOREGROUND=1
-vscode-sync` runs it attached so you can watch what it does.
 
 > [!IMPORTANT]
 > The installed set is made to equal the desired set exactly, so anything not in

@@ -61,6 +61,15 @@ let
     ];
   };
 
+  # pnpm and typescript go through the npm backend rather than the bare
+  # shorthands. The shorthand `pnpm` resolves through aqua, which downloads the
+  # standalone binary from GitHub releases by asset name, and pnpm's renames of
+  # those assets have broken installs before, against a registry snapshot mise
+  # bundles per release. The npm backend queries the npm registry over HTTP
+  # instead, so that failure mode does not exist. It needs neither node nor an
+  # npm CLI to install, and mise orders node first when it is in the same
+  # config, so the only requirement is node at runtime, which a JS project has
+  # by definition.
   miseToml = {
     empty = pkgs.writeText "mise-empty.toml" (tomlHeader + ''
       [tools]
@@ -72,7 +81,7 @@ let
     ts = pkgs.writeText "mise-ts.toml" (tomlHeader + ''
       [tools]
       node = "lts"
-      pnpm = "latest"
+      "npm:pnpm" = "latest"
       "npm:typescript" = "latest"
 
       # VSCode plugins for this repo live in .vscode/extensions.json

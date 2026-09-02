@@ -52,14 +52,12 @@ let
       # Maybe? https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode # no use for it yet
       "rodsarhan.tstypecolorpreview"
       "Kundros.regexer-extension" # Maybe, we use regex101 mostly
-      "AntiAntiSepticeye.vscode-color-picker"
     ];
 
     dotnet = [
       "ms-dotnettools.csharp"
       # Maybe? ms-dotnettools.csdevkit, verify it installs before adding it
       "Kundros.regexer-extension" # Maybe, we use regex101 mostly
-      "AntiAntiSepticeye.vscode-color-picker"
     ];
   };
 

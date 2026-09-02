@@ -90,8 +90,15 @@ let
       # [_.vscode]
       # .vscode/extensions.json
 
-      [_.playwright]
-      engines = ["chromium"]
+      [tasks.setup]
+      description = "First run after cloning"
+      run = [
+        "pnpm install",
+        # `playwright install` with no arguments fetches chromium, firefox and
+        # webkit. Naming one skips two large downloads. Commented out because
+        # not every project has playwright, and pnpm exec would fail.
+        # "pnpm exec playwright install chromium",
+      ]
     '');
 
     dotnet = pkgs.writeText "mise-dotnet.toml" (tomlHeader + ''
@@ -103,6 +110,10 @@ let
 
       # [_.dotnet]
       # global.json
+
+      [tasks.setup]
+      description = "First run after cloning"
+      run = ["dotnet restore"]
     '');
   };
 

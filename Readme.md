@@ -98,6 +98,8 @@ The preset is `empty`, `ts` or `dotnet`, and decides only what goes into
 - runs `mise trust`, before anything tries to read that config
 - creates and fills `mise.lock`
 - writes `.vscode/extensions.json` with the project-level plugins for that stack
+- adds a `setup` task, so a fresh clone is `mise run setup` rather than a list of
+  commands someone has to remember
 - excludes `mise.local.toml` in `.git/info/exclude`, not in the repo's
   `.gitignore`, so personal tooling stays out of other people's diffs
 

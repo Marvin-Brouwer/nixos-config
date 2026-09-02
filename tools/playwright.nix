@@ -30,6 +30,12 @@
 # hammer than the executablePath route (it covers UI mode, which always goes
 # through the browser registry) and needs no project support. Installed
 # system-wide, so it is available as a command from anywhere.
+#
+# It has never been needed. chromium installs and passes tests on plain nix-ld,
+# so this is insurance rather than a working part of the setup. Kept because
+# only chromium has been tested: the library list it shares notes that webkit
+# needs a longer tail than chromium and firefox do, and that tail is unverified.
+# Once a webkit run passes without this, it can go.
 # -----------------------------------------------------------------
 
 { pkgs, lib }:

@@ -157,6 +157,17 @@ let
       ${pkgs.coreutils}/bin/rm -f "$UNWANTED_FILE"
     fi
 
+    # The WSL remote extension is machine-specific infrastructure rather than a
+    # preference, so it is not in the base list. Without it VSCode cannot open a
+    # WSL folder at all, it just reports "Disconnected from vscode-remote". On a
+    # box with no WSL remote there is nothing for it to connect to.
+    #
+    # Added after the unwanted filter on purpose: vetoing the extension that
+    # makes the editor reach this machine is never what a project meant.
+    if command -v cmd.exe >/dev/null 2>&1; then
+      DESIRED_EXTS="$(printf '%s\nms-vscode-remote.remote-wsl\n' "$DESIRED_EXTS" | normalise)"
+    fi
+
     DESIRED_HASH=$(printf '%s\n' "$DESIRED_EXTS" | ${pkgs.coreutils}/bin/sha256sum | ${pkgs.coreutils}/bin/cut -d' ' -f1)
 
     ensure_terminal

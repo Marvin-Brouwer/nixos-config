@@ -79,7 +79,7 @@ The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
   `.gitignore`, so personal tooling stays out of other people's diffs
 
 Nothing is overwritten. Anything already present is kept and logged, so
-re-running is safe.
+re-running is safe. What each step is for is in [docs/repoconfig.md](docs/repoconfig.md).
 
 `mise.toml` and `mise.lock` both get committed. The first is the spec and can
 float, the second records the exact version every machine installs, and `mise up`
@@ -123,10 +123,12 @@ hung until you press enter.
 
 > [!IMPORTANT]
 > The installed set is made to equal the desired set exactly, so anything in
-> neither list gets uninstalled, including extensions VSCode ships with. The base
-> list therefore has to carry infrastructure as well as preferences, which is why
-> `ms-vscode-remote.remote-wsl` is in it. Without that entry the sync produces an
-> editor that cannot open a WSL folder.
+> neither list gets uninstalled, including extensions VSCode ships with.
+> `ms-vscode-remote.remote-wsl` is the one exception. It is machine-specific
+> infrastructure rather than a preference, so it is not in the base list;
+> `programs/vscode.nix` adds it when it sees a Windows side to talk to, after the
+> unwanted filter, because a project vetoing it would leave an editor that cannot
+> open a WSL folder.
 
 > [!NOTE]
 > There is one extension set, not one per repo, so moving between repos with

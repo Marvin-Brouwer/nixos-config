@@ -25,7 +25,8 @@ in
   # inside a project at all.
   environment.systemPackages = with pkgs; [
     librewolf
-    # git itself comes from programs.git below
+    # No git here on purpose. programs.git below installs it and registers the
+    # LFS filters in /etc/gitconfig, which listing it here would not do.
     gh
     curl
     wget  # required by VS Code Remote-WSL to download the server

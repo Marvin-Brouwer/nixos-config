@@ -18,13 +18,11 @@
 # deliberately rather than in passing.
 # -----------------------------------------------------------------
 
-[
-  # Required infrastructure, not a preference. Without it VSCode cannot open a
-  # WSL folder at all: the window reports "Disconnected from vscode-remote" and
-  # asks to install the WSL extension. setup.sh installs it on the Windows side,
-  # and every profile the sync builds needs it too, or the profile is unusable.
-  "ms-vscode-remote.remote-wsl"
+# ms-vscode-remote.remote-wsl is deliberately not here. It is required
+# infrastructure rather than a preference, and only on a machine that has a WSL
+# remote to connect to, so programs/vscode.nix adds it when it detects one.
 
+[
   "jnoortheen.nix-ide"
   "dbaeumer.vscode-eslint"
   "esbenp.prettier-vscode"

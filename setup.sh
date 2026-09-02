@@ -184,13 +184,13 @@ main() {
   echo "    wsl --shutdown"
   echo "    wsl"
   echo
-  echo "After restart, set up a project with mise:"
+  echo "After restart, set a project up with one command:"
   echo "    cd ~/repos/my-project"
-  echo "    mise use node@lts       # writes mise.toml and mise.lock"
-  echo "    mise trust              # allow this project's config to load"
+  echo "    repoconfig ts you@example.com     # or: empty, dotnet"
   echo
-  echo "VSCode plugins come from the project's .vscode/extensions.json,"
-  echo "unioned with your base list in programs/vscode-plugins.nix."
+  echo "That writes mise.toml, mise.lock and .vscode/extensions.json, trusts the"
+  echo "config, and syncs your VSCode plugins. What it does and why:"
+  echo "    https://github.com/Marvin-Brouwer/nixos-config/blob/main/docs/repoconfig.md"
   echo
 
   info "Reloading shell to activate hooks in the current session..."

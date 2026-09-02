@@ -94,10 +94,7 @@ let
       description = "First run after cloning"
       run = [
         "pnpm install",
-        # `playwright install` with no arguments fetches chromium, firefox and
-        # webkit. Naming one skips two large downloads. Commented out because
-        # not every project has playwright, and pnpm exec would fail.
-        # "pnpm exec playwright install chromium",
+        "pnpm exec playwright install chromium",
       ]
     '');
 

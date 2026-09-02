@@ -2,6 +2,7 @@
 
 let
   vscode = import ./programs/vscode.nix { inherit pkgs lib; };
+  repoconfig = import ./programs/repoconfig.nix { inherit pkgs lib; };
   playwright = import ./tools/playwright.nix { inherit pkgs lib; };
 in
 {
@@ -42,6 +43,9 @@ in
     # VSCode plugin sync, and the wrapper that opens this repo's profile.
     vscode.sync
     vscode.wrapper
+
+    # One-shot repo setup: git identity, mise.toml, trust, lockfile, plugins.
+    repoconfig
 
     # Break-glass FHS sandbox for when nix-ld does not cover a browser.
     playwright

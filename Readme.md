@@ -9,8 +9,8 @@ project, because nixpkgs only carries the runtime majors it packages and arbitra
 versions are the one thing it cannot give you.
 
 > [!NOTE]
-> The `repoconfig` command and the `docs/examples/` walkthroughs are not written
-> yet, see [issue #15](https://github.com/Marvin-Brouwer/nixos-config/issues/15).
+> The `docs/examples/` walkthroughs are not written yet, see
+> [issue #15](https://github.com/Marvin-Brouwer/nixos-config/issues/15).
 
 ## Structure
 
@@ -26,6 +26,7 @@ versions are the one thing it cannot give you.
 │   │   └─ nix-ld-libs.nix          # libraries that let vendor binaries run
 │   ├─ programs/
 │   │   ├─ mise.toml                # installed to /etc/mise/config.toml
+│   │   ├─ repoconfig.nix           # one-shot repo setup command
 │   │   ├─ vscode.nix               # the plugin sync command
 │   │   └─ vscode-plugins.nix       # my base plugin list
 │   └─ tools/
@@ -85,19 +86,37 @@ node does not fight anything else on the box.
 
 ```bash
 cd ~/repos/my-project
-repoconfig me@example.com   # git identity, mise.toml and mise.lock, trust, local ignores
-mise use node@lts           # records the tool, and its resolved version in mise.lock
+repoconfig ts me@example.com
 ```
 
-Both files are meant to be committed. `mise.toml` is the spec and can float
-(`node = "lts"`), `mise.lock` records the exact version every machine installs, and
-`mise up` bumps it when you decide to.
+The preset is `empty`, `ts` or `dotnet`, and decides only what goes into
+`mise.toml` and `.vscode/extensions.json`. Everything else is the same:
+
+- sets the local git identity
+- writes `mise.toml`, which is also what marks the repo as managed for the
+  plugin sync
+- runs `mise trust`, before anything tries to read that config
+- creates and fills `mise.lock`
+- writes `.vscode/extensions.json` with the project-level plugins for that stack
+- excludes `mise.local.toml` in `.git/info/exclude`, not in the repo's
+  `.gitignore`, so personal tooling stays out of other people's diffs
+
+It never overwrites. Anything already there is kept and logged, so re-running is
+safe.
+
+`mise.toml` and `mise.lock` are both meant to be committed. The first is the spec
+and can float (`node = "lts"`), the second records the exact version every machine
+installs, and `mise up` bumps it when you decide to.
 
 > [!IMPORTANT]
 > mise never creates `mise.lock` on its own, it only maintains one that already
 > exists, and it says nothing when there is none. A repo without the file silently
-> gets no version pinning at all. That is what `repoconfig` creating it is for; by
-> hand it is `touch mise.lock && mise install`.
+> gets no version pinning at all. That is the main thing `repoconfig` is for; by
+> hand it is `touch mise.lock && mise install && mise lock`.
+
+> [!NOTE]
+> Only `node` accepts `lts`. It is an alias the node plugin defines, not a mise
+> wide concept, so everything else takes `latest` or an explicit version.
 
 A contributor who does not use mise is not blocked by any of this: point them at
 the standard file for their stack instead, `.nvmrc` or `packageManager` in

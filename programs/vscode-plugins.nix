@@ -40,7 +40,6 @@
   "redhat.vscode-yaml"
   "hagent.json-field-filter"
   "oliversturm.fix-json"
-  "richie5um2.vscode-statusbar-json-path"
   "motivesoft.vscode-restart"
   "anweber.vscode-httpyac"
   # This is very similar to what we want to do:

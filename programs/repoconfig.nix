@@ -23,41 +23,43 @@ let
   gitUserName = "Marvin Brouwer";
 
   tomlHeader = ''
-    # This file serves both as an auto install and an SBOM
-    # (https://www.ntia.gov/page/software-bill-materials).
-    # Install mise, or read this file to configure the tools for this repo by
-    # hand. https://mise.jdx.dev/
-    #
-    # Only `node` supports "lts". Everything else takes "latest" or a version.
+    # This file serves both as an auto install and an SBOM (https://www.ntia.gov/page/software-bill-materials)
+    # Install mise or use this file to configure the tools for this repo
+    # https://mise.jdx.dev/
 
   '';
 
-  # VSCode plugins the *project* wants, which is not the same list as the ones
-  # I want everywhere. Mine live in programs/vscode-plugins.nix and never go
-  # into a repo; these are the ones a contributor also benefits from, which is
-  # why they belong in the standard .vscode/extensions.json instead.
+  # VSCode plugins the *project* wants, which is not the same list as the ones I
+  # want everywhere. Mine live in programs/vscode-plugins.nix and never go into
+  # someone else's repository; these are the ones a contributor also benefits
+  # from, which is why they belong in the standard .vscode/extensions.json.
+  #
+  # The comments are kept here and stripped on the way out: notes about what I
+  # might drop later are mine, and have no business in a repo other people read.
   recommendations = {
     empty = [ ];
 
     ts = [
-      "dbaeumer.vscode-eslint"
-      "esbenp.prettier-vscode"
       "ms-vscode.vscode-typescript-next"
+      "ms-toolsai.jupyter"
+      # dbaeumer.vscode-eslint is already in the base template
       "vitest.explorer"
       "yoavbls.pretty-ts-errors"
       "wix.vscode-import-cost"
       "meganrogge.template-string-converter"
-      "pflannery.vscode-versionlens"
+      "pflannery.vscode-versionlens" # or Pilaton.vscode-npm-lens
+      # Maybe? https://marketplace.visualstudio.com/items?itemName=bradgashler.htmltagwrap
+      # Maybe? https://marketplace.visualstudio.com/items?itemName=statelyai.stately-vscode # no use for it yet
       "rodsarhan.tstypecolorpreview"
+      "Kundros.regexer-extension" # Maybe, we use regex101 mostly
       "AntiAntiSepticeye.vscode-color-picker"
-      "Kundros.regexer-extension"
     ];
 
     dotnet = [
       "ms-dotnettools.csharp"
-      "editorconfig.editorconfig"
+      # Maybe? ms-dotnettools.csdevkit, verify it installs before adding it
+      "Kundros.regexer-extension" # Maybe, we use regex101 mostly
       "AntiAntiSepticeye.vscode-color-picker"
-      "Kundros.regexer-extension"
     ];
   };
 
@@ -75,20 +77,19 @@ let
       [tools]
 
 
-      # VSCode plugins for this repo live in .vscode/extensions.json
+      # [_.vscode]
+      # .vscode/extensions.json
     '');
 
     ts = pkgs.writeText "mise-ts.toml" (tomlHeader + ''
       [tools]
-      node = "lts"
       "npm:pnpm" = "latest"
+      node = "lts"
       "npm:typescript" = "latest"
 
-      # VSCode plugins for this repo live in .vscode/extensions.json
+      # [_.vscode]
+      # .vscode/extensions.json
 
-      # Inert metadata. mise never parses anything under [_], so this documents
-      # the browsers the suite needs without pretending to install them;
-      # playwright.config.ts is what actually drives `playwright install`.
       [_.playwright]
       engines = ["chromium"]
     '');
@@ -97,10 +98,11 @@ let
       [tools]
       dotnet = "latest"
 
-      # VSCode plugins for this repo live in .vscode/extensions.json
-      #
-      # global.json pins the SDK for contributors who do not run mise; the
-      # dotnet CLI reads it natively.
+      # [_.vscode]
+      # .vscode/extensions.json
+
+      # [_.dotnet]
+      # global.json
     '');
   };
 

@@ -171,8 +171,6 @@ pkgs.writeShellScriptBin "repoconfig" ''
     ${pkgs.coreutils}/bin/touch mise.lock
     made "mise.lock"
   fi
-  mise install || say "mise install reported a problem, see above"
-  mise lock --platform linux-x64,windows-x64 || say "mise lock reported a problem, see above"
 
   # --- vscode plugins ---
   if [ -f .vscode/extensions.json ]; then
@@ -195,6 +193,13 @@ pkgs.writeShellScriptBin "repoconfig" ''
     printf '%s\n' "mise.local.toml" >> "$EXCLUDE"
     made "$EXCLUDE entry for mise.local.toml"
   fi
+
+  # --- resolve and lock, last ---
+  # Everything above is local and instant. This talks to the network and can
+  # take a minute on a fresh preset, so it goes at the end: a failure or a
+  # ctrl-c here leaves the repo already set up rather than half configured.
+  mise install || say "mise install reported a problem, see above"
+  mise lock --platform linux-x64,windows-x64 || say "mise lock reported a problem, see above"
 
   printf '\n   Done. `cd` out and back in to trigger the plugin sync.\n\n'
 ''

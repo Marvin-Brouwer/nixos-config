@@ -199,5 +199,12 @@ pkgs.writeShellScriptBin "repoconfig" ''
   mise install || say "mise install reported a problem, see above"
   mise lock --platform linux-x64,windows-x64 || say "mise lock reported a problem, see above"
 
-  printf '\n   Done. `cd` out and back in to trigger the plugin sync.\n\n'
+  # Run the sync here rather than telling you to cd out and back in. The mise
+  # enter hook lives in the interactive shell, so it cannot be triggered from
+  # inside this script; calling it directly does the same job. The repo has a
+  # mise.toml and is trusted by now, so the guard lets it through.
+  echo
+  vscode-sync
+
+  printf '\n   Done.\n\n'
 ''

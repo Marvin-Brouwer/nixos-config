@@ -42,6 +42,7 @@ let
 
     MARKER_DIR="''${HOME}/.config/nixos-vscode-sync"
     LOCK_FILE="''${MARKER_DIR}/sync.lock"
+    LOG_FILE="''${MARKER_DIR}/last.log"
     ${pkgs.coreutils}/bin/mkdir -p "$MARKER_DIR"
 
     # The mise hook passes --detach so entering a directory never waits on the
@@ -62,6 +63,7 @@ let
       fi
       ${pkgs.util-linux}/bin/flock "$LOCK_FILE" true
       echo "[vscode] Sync idle."
+      [ -s "$LOG_FILE" ] && echo "[vscode] Last detached run: $LOG_FILE"
       exit 0
     fi
 
@@ -164,8 +166,11 @@ let
       exit 0
     fi
 
+    # Detached runs write to a log, never to the terminal. A background job
+    # printing to a shell that has already drawn its prompt leaves the cursor
+    # stranded below the output, so the shell looks hung until you press enter.
     if [ -n "$DETACH" ]; then
-      "$0" "$@" &
+      "$0" "$@" >"$LOG_FILE" 2>&1 &
       exit 0
     fi
 

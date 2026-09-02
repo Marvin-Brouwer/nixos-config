@@ -105,6 +105,9 @@ build and run all work with nothing set per project.
 > through a loader shim reading `NIX_LD_LIBRARY_PATH`. Use
 > `LD_LIBRARY_PATH="$NIX_LD_LIBRARY_PATH" ldd <binary>` or do not run it.
 
-Not yet exercised: a hello world never opens a TLS connection, so the `openssl`
-and `krb5` entries in `lib/nix-ld-libs.nix` are untested. The first `HttpClient`
-call against https is what will prove them.
+TLS works too. An `HttpClient` call against an https URL returns a response,
+which exercises the `openssl` and `zlib` entries in `lib/nix-ld-libs.nix` that a
+hello world never touches.
+
+`krb5` in that list stays unexercised. It is only used for Windows domain
+authentication, so it is unlikely to come up.

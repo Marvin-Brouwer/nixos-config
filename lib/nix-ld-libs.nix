@@ -53,8 +53,9 @@ in
   stdenv.cc.cc.lib
 
   # Wanted by mise-installed runtimes rather than by browsers. The .NET SDK
-  # is the fussiest of them: it needs openssl and krb5 on top of the icu
-  # further down this list.
+  # needs openssl and zlib the moment it opens an https connection, on top of
+  # the icu further down this list. krb5 is there for Windows domain auth and
+  # has never been exercised here.
   openssl
   zlib
   krb5

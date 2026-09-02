@@ -1,0 +1,54 @@
+# -----------------------------------------------------------------
+# System-wide mise settings, installed to /etc/mise/config.toml by
+# environment.etc in configuration.nix.
+#
+# Project tooling is NOT declared here. Each repo carries its own
+# mise.toml, because locking is scoped to a config root: tools inherited
+# from a global or parent config never land in the project's own
+# mise.lock, which is exactly the cross-machine drift this is meant to
+# stop.
+# -----------------------------------------------------------------
+
+[settings]
+# Required by the enter hook below, which mise otherwise refuses to run.
+#
+# Broader than that one feature: it opts into every experimental feature, and
+# jdx uses it as a beta flag as well. There is no narrower switch, and the hook
+# is not optional for plugin sync, so this is the price.
+experimental = true
+
+# mise defaults this to true on NixOS, on the assumption that precompiled glibc
+# binaries cannot run here. programs.nix-ld is what makes them run, so take the
+# binaries: building every runtime from source is slow and needs a toolchain
+# this box deliberately does not carry. Node's ./configure alone wants python.
+#
+# mise's automatic NixOS default is deprecated anyway, removed in 2027.8.0, so
+# saying it explicitly is also the future-proof form.
+all_compile = false
+
+# Pin resolved versions per project. The spec in a repo's mise.toml can
+# still float (node = "lts"); the lock records what every machine
+# actually installs, and `mise up` bumps it when you decide to.
+#
+# This only maintains a mise.lock that already exists. mise does not create one,
+# so a repo with no lockfile silently gets no pinning, which is the failure this
+# setting is here to prevent. `repoconfig` creates the file when setting a repo
+# up; by hand it is `touch mise.lock && mise install`.
+lockfile = true
+
+# mise.toml is the single source of truth for this box. .nvmrc,
+# package.json and global.json stay in project repos as documentation
+# for contributors who don't run mise, but mise itself ignores them so
+# there is never a question of which file won.
+idiomatic_version_file_enable_tools = []
+
+[hooks]
+# Sync VSCode plugins on entering a project. See programs/vscode.nix.
+# Only fires inside a trusted mise project, so a repo needs a mise.toml
+# and one `mise trust`.
+#
+# Runs in the foreground, so entering a project waits for the sync and shows
+# what it did. Most entries hit the hash fast path and return instantly; it only
+# blocks when the plugin set actually changed. `vscode-sync --detach` is the
+# alternative, which logs instead of printing and does not block.
+enter = "vscode-sync"

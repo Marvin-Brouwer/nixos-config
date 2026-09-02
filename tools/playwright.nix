@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------
-# Playwright support for the TypeScript profile.
+# Playwright fallback sandbox.
 #
 # The primary mechanism is not here: it is `programs.nix-ld.libraries` in
 # configuration.nix, which makes the browsers Playwright downloads for
@@ -25,16 +25,23 @@
 #      does not fail -- it retries the lock 20 times over ten minutes in
 #      silence, presenting as a command that hangs with no output.
 #
-# `playwright-fhs` below stays as a fallback for whatever nix-ld does not
-# cover: an FHS sandbox where the downloaded binaries run unmodified. It is
-# a bigger hammer than the executablePath route (it covers UI mode, which
-# always goes through the browser registry) and needs no project support.
+# `playwright-fhs` below is the fallback for whatever nix-ld does not cover:
+# an FHS sandbox where the downloaded binaries run unmodified. It is a bigger
+# hammer than the executablePath route (it covers UI mode, which always goes
+# through the browser registry) and needs no project support. Installed
+# system-wide, so it is available as a command from anywhere.
+#
+# It has never been needed. chromium installs and passes tests on plain nix-ld,
+# so this is insurance rather than a working part of the setup. Kept because
+# only chromium has been tested: the library list it shares notes that webkit
+# needs a longer tail than chromium and firefox do, and that tail is unverified.
+# Once a webkit run passes without this, it can go.
 # -----------------------------------------------------------------
 
 { pkgs, lib }:
 
 let
-  browserLibs = import ../../lib/browser-libs.nix { inherit pkgs lib; };
+  browserLibs = import ../lib/nix-ld-libs.nix { inherit pkgs lib; };
 
   fhs = pkgs.buildFHSEnv {
     name = "playwright-fhs";
@@ -42,6 +49,11 @@ let
       p:
       browserLibs
       ++ (with p; [
+        # mise, so the project's own pinned node and pnpm are reachable
+        # inside the sandbox rather than a second, different node.
+        mise
+        # ...but keep a working node here too, so the sandbox is still
+        # useful as break-glass in a repo that has no mise.toml.
         nodejs_24
         pnpm
         cacert
@@ -55,6 +67,4 @@ let
   };
 
 in
-{
-  inherit fhs;
-}
+fhs

@@ -1,12 +1,26 @@
 # -----------------------------------------------------------------
-# Base list of VSCode extension IDs that all profiles inherit.
+# My personal base VSCode plugin list.
 #
-# These are marketplace extension IDs (publisher.name format).
-# The dev shell installs them into a named VSCode Profile via
-# `code --install-extension` and launches VSCode with that profile.
+# These are the ones I want everywhere regardless of what a project is
+# written in. They are mine, not a project's, so they never belong in a
+# repo's .vscode/extensions.json.
+#
+# A project's own plugins live in its .vscode/extensions.json, which is
+# the standard file VSCode already prompts contributors to install.
+# programs/vscode.nix unions the two, so this list is the "on top of my
+# default profile" half.
+#
+# Marketplace IDs, publisher.name format.
+#
+# TODO: this list mixes in a few genuinely project-level plugins (eslint,
+# prettier, EditorConfig, redhat.vscode-yaml). Those belong in each repo's
+# extensions.json instead. Prune them when writing docs/examples/ts.md,
+# deliberately rather than in passing.
 # -----------------------------------------------------------------
 
-{ extra ? [] }:
+# ms-vscode-remote.remote-wsl is deliberately not here. It is required
+# infrastructure rather than a preference, and only on a machine that has a WSL
+# remote to connect to, so programs/vscode.nix adds it when it detects one.
 
 [
   "jnoortheen.nix-ide"
@@ -24,7 +38,6 @@
   "redhat.vscode-yaml"
   "hagent.json-field-filter"
   "oliversturm.fix-json"
-  "richie5um2.vscode-statusbar-json-path"
   "motivesoft.vscode-restart"
   "anweber.vscode-httpyac"
   # This is very similar to what we want to do:
@@ -55,4 +68,4 @@
   "meronz.manpages"
   "maattdd.gitless" # or eamodio.gitlens
   "anthropic.claude-code"
-] ++ extra
+]

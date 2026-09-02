@@ -92,10 +92,7 @@ let
 
       [tasks.setup]
       description = "First run after cloning"
-      run = [
-        "pnpm install",
-        "pnpm exec playwright install chromium",
-      ]
+      run = ["pnpm install"]
     '');
 
     dotnet = pkgs.writeText "mise-dotnet.toml" (tomlHeader + ''

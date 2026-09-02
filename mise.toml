@@ -1,2 +1,7 @@
+# Marks this repo as one the plugin sync manages, so entering it keeps the
+# VSCode extensions in programs/vscode-plugins.nix installed.
+#
+# No tools: nothing here needs a runtime. The nix files are built by
+# nixos-rebuild, which comes from the system rather than from mise.
+
 [tools]
-node = "24"

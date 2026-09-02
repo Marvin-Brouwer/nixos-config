@@ -1,27 +1,27 @@
 # My local NixOs setup
 
-I am running NixOs in WSL, and I want per-project tool versions so I can work on
-different projects without clashes. For example, I just want to run `python`,
-whether the project needs 2 or 3.
+NixOs in WSL, with per-project tool versions so different projects do not clash.
+I want to run `python` and get whichever version that project needs.
 
-NixOS provides the machine. [mise](https://mise.jdx.dev/) provides the tools, per
-project, because nixpkgs only carries the runtime majors it packages and arbitrary
-versions are the one thing it cannot give you.
+Two halves:
 
-> [!NOTE]
-> The `docs/examples/` walkthroughs are not written yet, see
-> [issue #15](https://github.com/Marvin-Brouwer/nixos-config/issues/15).
+- **NixOS** is the machine. git, curl, browsers, the VSCode plumbing, and the
+  helper commands below.
+- **[mise](https://mise.jdx.dev/)** is the tools. node, pnpm, dotnet, per project,
+  because nixpkgs only carries the runtime majors it packages and arbitrary
+  versions are the one thing it cannot give you.
+
+A project declares what it needs in files that work for anyone who clones it,
+whether or not they have mise or NixOS. See [docs/examples/ts.md](docs/examples/ts.md)
+and [docs/examples/csharp.md](docs/examples/csharp.md).
 
 ## Structure
 
 ```txt
 ~/
-├─ .config/
-│   └─ nix/
-│       └─ nix.conf               # enable flakes, etcetera, here
 ├─ nixos-config/
-│   ├─ flake.nix                    # the entry point for the whole repo
-│   ├─ configuration.nix            # full NixOS system config (WSL-2 VM)
+│   ├─ flake.nix                    # entry point
+│   ├─ configuration.nix            # the NixOS system
 │   ├─ lib/
 │   │   └─ nix-ld-libs.nix          # libraries that let vendor binaries run
 │   ├─ programs/
@@ -29,50 +29,30 @@ versions are the one thing it cannot give you.
 │   │   ├─ repoconfig.nix           # one-shot repo setup command
 │   │   ├─ vscode.nix               # the plugin sync command
 │   │   └─ vscode-plugins.nix       # my base plugin list
-│   └─ tools/
-│       └─ playwright.nix           # FHS fallback sandbox
+│   ├─ tools/
+│   │   └─ playwright.nix           # FHS fallback sandbox
+│   └─ docs/
+│       └─ examples/                # per-stack walkthroughs
 └─ repos/
-    ├─ my-first-proj/
-    │   ├─ mise.toml                # this project's tools
-    │   ├─ mise.lock                # the exact versions, committed
-    │   └─ .vscode/
-    │       └─ extensions.json      # this project's plugins
-    └─ another-proj/
-        └─ ...
+    └─ my-project/
+        ├─ mise.toml                # this project's tools
+        ├─ mise.lock                # the exact versions, committed
+        └─ .vscode/extensions.json  # this project's plugins
 ```
 
-## Setup NixOS
-
-Clone this repo
+## Install
 
 ```bash
-# Install git temporarily (not in base install)
 nix-shell -p git
-# Clone your config
 git clone https://github.com/Marvin-Brouwer/nixos-config.git ~/nixos-config
 cd ~/nixos-config
-```
-
-Run the setup:
-
-```bash
-# Recursively reset ownership of the entire .git tree to the current user
 sudo chown -R nixos:users .git
-# Run the script
 bash ./setup.sh
 ```
 
-The script will:
-
-- Enable flakes in `~/.config/nix/nix.conf`
-- Symlink `/etc/nixos` to this repo so `nixos-rebuild` finds the flake
-- Rebuild the WSL-2 NixOS system (`nixosConfigurations.nix-wsl`), which installs
-  mise, nix-ld and the helper commands
-- Add `mise.local.toml` to your global gitignore
-- Install the VSCode WSL Remote extension on the Windows side
-
-After the script finishes, restart the WSL VM so the new system takes effect.  
-Exit WSL and reboot it from the windows terminal (`gitbash`/`cmd`,`pwsh`, shouldn't matter):
+That enables flakes, symlinks `/etc/nixos` here, rebuilds the system, and installs
+the VSCode WSL Remote extension on the Windows side. Then restart WSL from a
+Windows terminal so the new system takes effect:
 
 ```bash
 wsl --shutdown
@@ -81,84 +61,87 @@ wsl
 
 ## Setting up a project
 
-Tools come from a `mise.toml` in the project itself, so a repo pinned to an old
-node does not fight anything else on the box.
-
 ```bash
 cd ~/repos/my-project
 repoconfig ts me@example.com
 ```
 
-The preset is `empty`, `ts` or `dotnet`, and decides only what goes into
+The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
 `mise.toml` and `.vscode/extensions.json`. Everything else is the same:
 
 - sets the local git identity
-- writes `mise.toml`, which is also what marks the repo as managed for the
-  plugin sync
-- runs `mise trust`, before anything tries to read that config
+- writes `mise.toml`, which also marks the repo as one the plugin sync manages
+- runs `mise trust`, before anything reads that config
 - creates and fills `mise.lock`
-- writes `.vscode/extensions.json` with the project-level plugins for that stack
-- adds a `setup` task, so a fresh clone is `mise run setup` rather than a list of
-  commands someone has to remember
-- excludes `mise.local.toml` in `.git/info/exclude`, not in the repo's
+- writes `.vscode/extensions.json`
+- adds a `setup` task, so a fresh clone is `mise run setup`
+- excludes `mise.local.toml` in `.git/info/exclude` rather than the repo's
   `.gitignore`, so personal tooling stays out of other people's diffs
 
-It never overwrites. Anything already there is kept and logged, so re-running is
-safe.
+Nothing is overwritten. Anything already present is kept and logged, so
+re-running is safe.
 
-`mise.toml` and `mise.lock` are both meant to be committed. The first is the spec
-and can float (`node = "lts"`), the second records the exact version every machine
-installs, and `mise up` bumps it when you decide to.
+`mise.toml` and `mise.lock` both get committed. The first is the spec and can
+float, the second records the exact version every machine installs, and `mise up`
+bumps it when you decide to.
 
 > [!IMPORTANT]
-> mise never creates `mise.lock` on its own, it only maintains one that already
-> exists, and it says nothing when there is none. A repo without the file silently
-> gets no version pinning at all. That is the main thing `repoconfig` is for; by
-> hand it is `touch mise.lock && mise install && mise lock`.
+> mise never creates `mise.lock` itself. It only maintains one that already
+> exists, and says nothing when there is none, so a repo without the file
+> silently gets no version pinning at all. That is the main thing `repoconfig`
+> is for. By hand it is `touch mise.lock && mise install && mise lock`.
 
 > [!NOTE]
-> Only `node` accepts `lts`. It is an alias the node plugin defines, not a mise
-> wide concept, so everything else takes `latest` or an explicit version.
-
-A contributor who does not use mise is not blocked by any of this: point them at
-the standard file for their stack instead, `.nvmrc` or `packageManager` in
-package.json for node, `global.json` for .NET.
+> Only `node` accepts `lts`. That is an alias the node plugin defines, not a
+> mise-wide concept, so everything else takes `latest` or a version.
 
 ## VSCode plugins
 
-Two lists get unioned on entering a project:
+Two lists are unioned when you enter a project:
 
-- `programs/vscode-plugins.nix` in this repo, the ones I want everywhere.
-- `<project>/.vscode/extensions.json`, the project's own. This is the standard
-  file VSCode already prompts contributors to install, so it is useful to people
-  who never touch this setup.
+- `programs/vscode-plugins.nix` here, the ones I want everywhere
+- `<project>/.vscode/extensions.json`, the project's own, which is the standard
+  file VSCode already prompts contributors to install
 
-Anything in that file's `unwantedRecommendations` is removed again, and the result
+Then anything in that file's `unwantedRecommendations` is removed, and the result
 is installed on both the Windows and WSL sides.
 
-> [!IMPORTANT]
-> There is one extension set, not one per repo, so moving between repos with
-> different plugins installs and uninstalls the difference each time. VSCode
-> profiles cannot be used for this: `code --profile <name> --install-extension`
-> will not create a profile that does not exist, it reports "Profile not found"
-> and exits 0 ([microsoft/vscode#176372](https://github.com/microsoft/vscode/issues/176372)).
-> Creating one means opening a window, which a `cd` has no business doing.
-
-The mise hook runs it as `vscode-sync --detach` so entering a directory never
-waits on the network. Run by hand it stays in the foreground, so `vscode-sync`
-forces a re-check and you watch it finish. To wait on one the hook started:
-
 ```bash
-vscode-sync --wait
+vscode-sync          # force a re-check, in the foreground
+vscode-sync --wait   # wait for one the mise hook started
 ```
 
+The hook runs it as `vscode-sync --detach` so entering a directory never waits on
+the network.
+
 > [!IMPORTANT]
-> The installed set is made to equal the desired set exactly, so anything not in
-> either list gets uninstalled, including extensions VSCode ships with. The base
+> The installed set is made to equal the desired set exactly, so anything in
+> neither list gets uninstalled, including extensions VSCode ships with. The base
 > list therefore has to carry infrastructure as well as preferences, which is why
-> `ms-vscode-remote.remote-wsl` is in it. Without that entry the sync builds
-> profiles that cannot open a WSL folder at all.
+> `ms-vscode-remote.remote-wsl` is in it. Without that entry the sync produces an
+> editor that cannot open a WSL folder.
 
 > [!NOTE]
-> The sync only fires inside a trusted mise project, so a repo needs a `mise.toml`
-> and one `mise trust` before it works.
+> There is one extension set, not one per repo, so moving between repos with
+> different plugins installs and uninstalls the difference each time. VSCode
+> profiles cannot be used: `code --profile <name> --install-extension` will not
+> create a profile that does not exist, it reports "Profile not found" and exits
+> 0 ([microsoft/vscode#176372](https://github.com/microsoft/vscode/issues/176372)).
+> Creating one means opening a window, which a `cd` has no business doing.
+
+The sync only runs inside a trusted mise project, so a repo needs a `mise.toml`
+and one `mise trust` first. `repoconfig` does both.
+
+## Why vendor binaries run at all
+
+`programs.nix-ld` is load-bearing for the whole setup, not just browsers.
+Everything mise installs is an ordinary vendor build expecting an FHS layout
+NixOS does not have, so without the shim node, pnpm and the .NET SDK all install
+cleanly and then fail to start.
+
+> [!NOTE]
+> `ldd` is not a valid test here. It resolves against the standard search paths,
+> while nix-ld works at runtime through a loader shim reading
+> `NIX_LD_LIBRARY_PATH`, so it reports every library nix-ld provides as missing
+> even when the binary runs fine. Use
+> `LD_LIBRARY_PATH="$NIX_LD_LIBRARY_PATH" ldd <binary>` or do not bother.

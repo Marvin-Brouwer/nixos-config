@@ -40,9 +40,8 @@ in
     # and skips the check with a warning when it cannot find one.
     gnupg
 
-    # VSCode plugin sync, and the wrapper that opens this repo's profile.
-    vscode.sync
-    vscode.wrapper
+    # VSCode plugin sync.
+    vscode
 
     # One-shot repo setup: git identity, mise.toml, trust, lockfile, plugins.
     repoconfig

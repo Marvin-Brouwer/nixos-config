@@ -11,8 +11,15 @@
 #
 # minus that file's `unwantedRecommendations`.
 #
-# The VSCode profile is named after the repo directory, because the plugin set
-# is per-repo.
+# There is one extension set, not one per repo. VSCode profiles cannot be used
+# here: `code --profile <name> --install-extension` will not create a profile
+# that does not exist, it just reports "Profile not found" and exits 0
+# (microsoft/vscode#176372). The only way to create one is to open a window,
+# which a directory change has no business doing. The WSL `code` wrapper has
+# never supported --profile either, so that half was always a single set.
+#
+# The consequence is churn: moving between repos with different plugins
+# installs and uninstalls the difference each time.
 # -----------------------------------------------------------------
 
 { pkgs, lib }:
@@ -24,20 +31,16 @@ let
   # legal and worth keeping, which rules out jq.
   python = pkgs.python3.withPackages (ps: [ ps.json5 ]);
 
-  # Both commands below have to agree on the profile name.
-  profileName = ''
+  repoRoot = ''
     repo_root() {
       ${pkgs.git}/bin/git rev-parse --show-toplevel 2>/dev/null || pwd
-    }
-    profile_name() {
-      ${pkgs.coreutils}/bin/basename "$(repo_root)"
     }
   '';
 
   sync = pkgs.writeShellScriptBin "vscode-sync" ''
-    ${profileName}
+    ${repoRoot}
 
-    MARKER_DIR="''${HOME}/.config/nixos-vscode-profiles"
+    MARKER_DIR="''${HOME}/.config/nixos-vscode-sync"
     LOCK_FILE="''${MARKER_DIR}/sync.lock"
     ${pkgs.coreutils}/bin/mkdir -p "$MARKER_DIR"
 
@@ -66,9 +69,9 @@ let
     #
     # The enter hook lives in the system mise config, so mise fires it on every
     # directory change anywhere on the box, not just in projects. Without this
-    # guard, a `cd /mnt/c` syncs a VSCode profile called "c" and rewrites the
-    # shared WSL extension set to match a directory that is not a project at
-    # all, silently uninstalling whatever the last real project had installed.
+    # guard, a `cd /mnt/c` rewrites the extension set to match a directory that
+    # is not a project at all, silently uninstalling whatever the last real
+    # project had installed.
     #
     # A mise.toml is what marks a repo as managed here; `repoconfig` writes one.
     if ! ${pkgs.git}/bin/git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -80,9 +83,13 @@ let
       exit 0
     fi
 
-    PROFILE="$(profile_name)"
+    REPO_NAME="$(${pkgs.coreutils}/bin/basename "$REPO_ROOT")"
     EXT_FILE="$REPO_ROOT/.vscode/extensions.json"
-    MARKER_FILE="''${MARKER_DIR}/''${PROFILE}.hash"
+
+    # One marker, not one per repo. The installed set is global, so a per-repo
+    # marker would fast-path out on returning to a repo whose plugins another
+    # repo had since uninstalled.
+    MARKER_FILE="''${MARKER_DIR}/installed.hash"
 
     # --- Windows VSCode: default the integrated terminal to this distro ---
     # Marker-guarded, so this is a file test on every run but the first.
@@ -162,10 +169,9 @@ let
       exit 0
     fi
 
-    # One global lock rather than one per profile, because the WSL extension set
-    # is shared across every profile. Two syncs for different projects would
-    # otherwise interleave install and uninstall calls against the same set and
-    # leave whichever finished last as the winner.
+    # One lock. The extension set is global, so two syncs for different projects
+    # would otherwise interleave install and uninstall calls against the same set
+    # and leave whichever finished last as the winner.
     exec 9>"$LOCK_FILE"
     if ! ${pkgs.util-linux}/bin/flock -n 9; then
       echo "[vscode] Another sync is already running, leaving it to finish."
@@ -190,17 +196,14 @@ let
       done
     }
 
-    # --- Windows side: install into the named VS Code profile ---
+    # --- Windows side ---
     # cmd.exe cannot use a UNC path as its working directory, hence the cd.
-    # The WSL `code` wrapper does not support --profile, the Windows CLI does.
     if command -v cmd.exe >/dev/null 2>&1; then
       win_code() {
-        (cd /mnt/c && cmd.exe /c code --profile "$PROFILE" "$@") | ${pkgs.coreutils}/bin/tr -d '\r'
+        (cd /mnt/c && cmd.exe /c code "$@") | ${pkgs.coreutils}/bin/tr -d '\r'
       }
 
-      win_code --list-extensions >/dev/null 2>&1   # ensure the profile exists
-
-      echo "[vscode] Syncing Windows profile '$PROFILE'..."
+      echo "[vscode] Syncing Windows extensions for $REPO_NAME..."
       WIN_INSTALLED=$(win_code --list-extensions 2>/dev/null | ${pkgs.coreutils}/bin/tr '[:upper:]' '[:lower:]')
 
       for ext in $DESIRED_EXTS; do
@@ -225,7 +228,7 @@ let
 
     # --- WSL side: install into the VS Code remote server ---
     if command -v code >/dev/null 2>&1; then
-      echo "[vscode] Syncing WSL remote extensions..."
+      echo "[vscode] Syncing WSL extensions for $REPO_NAME..."
       WSL_INSTALLED=$(code --list-extensions 2>/dev/null | ${pkgs.coreutils}/bin/tr '[:upper:]' '[:lower:]')
 
       for ext in $DESIRED_EXTS; do
@@ -251,25 +254,11 @@ let
     # Only record the hash if everything landed, so a failure retries next time.
     if [ "$FAIL" -eq 0 ]; then
       printf '%s\n' "$DESIRED_HASH" > "$MARKER_FILE"
-      echo "[vscode] Profile '$PROFILE' is up to date."
+      echo "[vscode] Extensions are up to date for $REPO_NAME."
     else
       echo "[vscode] Some plugins did not install. Will retry next time."
     fi
   '';
 
-  # Opens VSCode with this repo's profile. Has to be a real script rather
-  # than a shell function so it survives being on PATH.
-  wrapper = pkgs.writeShellScriptBin "vscode" ''
-    ${profileName}
-    PROFILE="$(profile_name)"
-    if [ $# -eq 0 ]; then
-      exec code --profile "$PROFILE" .
-    else
-      exec code --profile "$PROFILE" "$@"
-    fi
-  '';
-
 in
-{
-  inherit sync wrapper;
-}
+sync

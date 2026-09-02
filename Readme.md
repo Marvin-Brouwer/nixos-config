@@ -133,9 +133,16 @@ Two lists get unioned on entering a project:
   file VSCode already prompts contributors to install, so it is useful to people
   who never touch this setup.
 
-Anything in that file's `unwantedRecommendations` is removed again. The result is
-installed into a VSCode profile named after the repo directory, on both the Windows
-and WSL sides.
+Anything in that file's `unwantedRecommendations` is removed again, and the result
+is installed on both the Windows and WSL sides.
+
+> [!IMPORTANT]
+> There is one extension set, not one per repo, so moving between repos with
+> different plugins installs and uninstalls the difference each time. VSCode
+> profiles cannot be used for this: `code --profile <name> --install-extension`
+> will not create a profile that does not exist, it reports "Profile not found"
+> and exits 0 ([microsoft/vscode#176372](https://github.com/microsoft/vscode/issues/176372)).
+> Creating one means opening a window, which a `cd` has no business doing.
 
 The mise hook runs it as `vscode-sync --detach` so entering a directory never
 waits on the network. Run by hand it stays in the foreground, so `vscode-sync`

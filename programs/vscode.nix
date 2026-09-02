@@ -45,9 +45,9 @@ let
     LOG_FILE="''${MARKER_DIR}/last.log"
     ${pkgs.coreutils}/bin/mkdir -p "$MARKER_DIR"
 
-    # The mise hook passes --detach so entering a directory never waits on the
-    # network. Run by hand there is no reason to hide: staying in the foreground
-    # means you see what it does and know when it is finished.
+    # --detach backgrounds the sync and logs instead of printing. The hook does
+    # not use it: waiting and seeing the output is worth more than an instant
+    # `cd`, given the fast path already makes an unchanged entry free.
     DETACH=""
     if [ "''${1:-}" = "--detach" ]; then
       DETACH=1

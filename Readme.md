@@ -111,10 +111,15 @@ vscode-sync          # force a re-check, in the foreground
 vscode-sync --wait   # wait for one the mise hook started
 ```
 
-The hook runs it as `vscode-sync --detach` so entering a directory never waits on
-the network. A detached run writes to `~/.config/nixos-vscode-sync/last.log`
-rather than the terminal, because a background job printing over a prompt that
-has already been drawn leaves the shell looking hung until you press enter.
+Entering a project runs the sync in the foreground, so it prints what it did and
+you wait for it. Most entries hit the hash fast path and return instantly; it
+only blocks when the plugin set actually changed, which with one shared set means
+when you move between repos that want different plugins.
+
+`vscode-sync --detach` is the alternative. It backgrounds the sync and writes to
+`~/.config/nixos-vscode-sync/last.log` instead of printing, because a background
+job writing over a prompt that has already been drawn leaves the shell looking
+hung until you press enter.
 
 > [!IMPORTANT]
 > The installed set is made to equal the desired set exactly, so anything in

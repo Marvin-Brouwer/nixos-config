@@ -46,4 +46,9 @@ idiomatic_version_file_enable_tools = []
 # Sync VSCode plugins on entering a project. See programs/vscode.nix.
 # Only fires inside a trusted mise project, so a repo needs a mise.toml
 # and one `mise trust`.
-enter = "vscode-sync --detach"
+#
+# Runs in the foreground, so entering a project waits for the sync and shows
+# what it did. Most entries hit the hash fast path and return instantly; it only
+# blocks when the plugin set actually changed. `vscode-sync --detach` is the
+# alternative, which logs instead of printing and does not block.
+enter = "vscode-sync"

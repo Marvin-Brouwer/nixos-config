@@ -1,29 +1,17 @@
 { config, pkgs, lib, ... }:
 
 let
-  vscode = import ./programs/vscode.nix { inherit pkgs lib; };
-  repoconfig = import ./programs/repoconfig.nix { inherit pkgs lib; };
-  playwright = import ./tools/playwright.nix { inherit pkgs lib; };
-in
-{
-  # Configure network identity
-  networking.hostName = "nix-wsl";
+  # The facts about this particular machine, as opposed to about the setup.
+  # Nothing under programs/ names a host, so a second machine is these three
+  # bindings and a flake output rather than a rewrite.
+  hostName = "nix-wsl";
+  isWsl = true;
+  mainUser = "nixos";
 
-  # Ensure both users exist during transition
-  users.users = {
-    nixos = {
-      isNormalUser = true;
-      extraGroups = ["wheel" "networkmanager"];
-    };
-  };
-
-  # System-wide packages.
-  #
-  # Language runtimes are deliberately absent: those come from mise, per
-  # project, so a repo pinned to an old node does not fight the system. What
-  # lives here is the machine itself, plus anything needed before you are
-  # inside a project at all.
-  environment.systemPackages = with pkgs; [
+  # Upstream packages, in a binding because `sysupdate` names them in the
+  # pending-update notice. Anything built in this repo stays out of it: a local
+  # script has no upstream version to compare against.
+  systemTools = with pkgs; [
     librewolf
     # No git here on purpose. programs.git below installs it and registers the
     # LFS filters in /etc/gitconfig, which listing it here would not do.
@@ -41,6 +29,42 @@ in
     # and skips the check with a warning when it cannot find one.
     gnupg
 
+    # Scans the system closure against NVD, so there is an answer to whether
+    # being behind actually matters this time rather than only how long it has
+    # been. Expect false positives: it matches on name and version, and NixOS
+    # backports fixes without always bumping the version string. A prompt to
+    # look, not a verdict. `sysupdate --audit` is the shorthand.
+    vulnix
+  ];
+
+  vscode = import ./programs/vscode.nix { inherit pkgs lib; };
+  repoconfig = import ./programs/repoconfig.nix { inherit pkgs lib; };
+  playwright = import ./tools/playwright.nix { inherit pkgs lib; };
+  sysupdate = import ./programs/sysupdate.nix {
+    inherit pkgs lib hostName isWsl;
+    # git comes from programs.git rather than the list above, so it is named
+    # here explicitly. Otherwise the one package most worth seeing a version
+    # bump for would be the one the notice never mentions.
+    watch = systemTools ++ [ pkgs.git ];
+  };
+in
+{
+  # Configure network identity
+  networking.hostName = hostName;
+
+  # Ensure both users exist during transition
+  users.users.${mainUser} = {
+    isNormalUser = true;
+    extraGroups = ["wheel" "networkmanager"];
+  };
+
+  # System-wide packages.
+  #
+  # Language runtimes are deliberately absent: those come from mise, per
+  # project, so a repo pinned to an old node does not fight the system. What
+  # lives here is the machine itself, plus anything needed before you are
+  # inside a project at all. The upstream half is systemTools above.
+  environment.systemPackages = systemTools ++ [
     # VSCode plugin sync.
     vscode
 
@@ -49,6 +73,10 @@ in
 
     # Break-glass FHS sandbox for when nix-ld does not cover a browser.
     playwright
+
+    # See what is pending and apply it. The check and the shell notice are
+    # wired up below and referenced by store path, so they need no PATH entry.
+    sysupdate.sysupdate
   ];
 
   # git-lfs is enabled system-wide because it is a general footgun, not a
@@ -93,7 +121,64 @@ in
   # rc, so the hook is active on every terminal with no manual setup.
   programs.bash.interactiveShellInit = ''
     eval "$(mise activate bash)"
+
+    # What system updates are pending, straight from the file the timer below
+    # writes. A file test and a cat: no eval, no network, nothing slow between
+    # you and the prompt. It nags on every new shell until you deal with it,
+    # which is the point -- this box lives in WSL and is easy to forget.
+    ${sysupdate.notice}/bin/sysupdate-notice
   '';
+
+  # Pending system updates.
+  #
+  # Evaluating the configuration is the only way to know what changed: Nix has
+  # no package index to diff against the way apt does. So it cannot happen in
+  # the shell, and it lands here instead -- a timer that evaluates against the
+  # newest inputs and caches the answer for the notice above to print.
+  #
+  # This is not system.autoUpgrade and does not want to be. See
+  # programs/sysupdate.nix for why, in WSL and off it.
+  systemd.services.sysupdate-check = {
+    description = "Check for pending system updates";
+    # Deliberately not network-online.target: nothing provides it in WSL, and
+    # the check needs no ordering guarantee anyway. A run with no network fails
+    # softly, keeps the previous answer, and retries in an hour.
+    after = [ "network.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${sysupdate.check}/bin/sysupdate-check";
+
+      # Runs as the user who owns the repo, not as root. It only reads the
+      # flake and writes its own state directory, so root buys nothing, and git
+      # refuses to touch a work tree owned by someone else ("dubious
+      # ownership") which is exactly what a root-run check would hit.
+      User = mainUser;
+
+      # Creates /var/lib/sysupdate world-readable, which is what lets every
+      # shell print a notice this unit wrote.
+      StateDirectory = "sysupdate";
+      StateDirectoryMode = "0755";
+      # A full nixpkgs eval is not something that should be felt in a terminal.
+      Nice = 19;
+      IOSchedulingClass = "idle";
+      CPUSchedulingPolicy = "idle";
+    };
+  };
+
+  systemd.timers.sysupdate-check = {
+    description = "Check for pending system updates";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      # Boot is the frequent event in WSL, roughly daily, so it is the good
+      # trigger here; OnUnitActiveSec is what covers a machine left running for
+      # weeks instead. Neither is the real rate limit -- timer state does not
+      # survive a WSL shutdown, so the stamp file in sysupdate-check is what
+      # actually enforces the interval.
+      OnBootSec = "2min";
+      OnUnitActiveSec = "12h";
+      Unit = "sysupdate-check.service";
+    };
+  };
 
   # Facts about this machine rather than about any one project.
   environment.sessionVariables = {
@@ -141,8 +226,8 @@ in
   networking.wireless.enable = lib.mkForce false; # Disables wpa_supplicant
   # WSL-specific settings
   wsl = {
-    enable = true;
-    defaultUser = "nixos";
+    enable = isWsl;
+    defaultUser = mainUser;
     startMenuLaunchers = true;
     wslConf = {
       automount.root = "/mnt";

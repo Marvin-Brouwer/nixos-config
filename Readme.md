@@ -5,8 +5,8 @@ I want to run `python` and get whichever version that project needs.
 
 Two halves:
 
-- **NixOS** is the machine. git, curl, browsers, the VSCode plumbing, and the
-  helper commands below.
+- **NixOS** is the machine. git, curl, browsers, the VSCode plumbing, keeping
+  itself up to date, and the helper commands below.
 - **[mise](https://mise.jdx.dev/)** is the tools. node, pnpm, dotnet, per project,
   because nixpkgs only carries the runtime majors it packages and arbitrary
   versions are the one thing it cannot give you.
@@ -27,6 +27,8 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   ├─ programs/
 │   │   ├─ mise.toml                # installed to /etc/mise/config.toml
 │   │   ├─ repoconfig.nix           # one-shot repo setup command
+│   │   ├─ sysupdate.nix            # update command, check, shell notice
+│   │   ├─ sysupdate-diff.py        # the closure diff behind the notice
 │   │   ├─ vscode.nix               # the plugin sync command
 │   │   └─ vscode-plugins.nix       # my base plugin list
 │   ├─ tools/
@@ -94,6 +96,39 @@ bumps it when you decide to.
 > [!NOTE]
 > Only `node` accepts `lts`. That is an alias the node plugin defines, not a
 > mise-wide concept, so everything else takes `latest` or a version.
+
+## Keeping the system up to date
+
+Every interactive shell says what a system update would change, from a cached
+answer a timer writes:
+
+```txt
+You have pending system updates!
+ - curl       8.9.1  -> 8.11.0   (pending 34 days)
+ - git        2.45.1 -> 2.47.0
+ - jq         1.7.1  -> 1.8.0
+   ...
+ + 143 other packages in the system closure
+
+ run sysupdate to update
+```
+
+```bash
+sysupdate          # bump the inputs, build, show the diff, apply or stage
+sysupdate --audit  # scan the running system for known vulnerabilities
+```
+
+`sysupdate` asks about `nixpkgs` and `nixos-wsl` separately, builds the new
+system without touching the running one, shows `nvd diff` for the exact old to
+new versions, and then asks: apply now, stage for the next start, or discard.
+Applying is `nixos-rebuild switch`; staging is `nixos-rebuild boot`, which takes
+effect after `wsl --shutdown`. Either way the `flake.lock` bump is committed, so
+the machine stays reproducible and the same versions travel to another box.
+
+Nothing here is `system.autoUpgrade`. It activates silently, which defeats the
+purpose, and in WSL its timer never fires anyway. Why, and how the background
+check works without slowing down your prompt, is in
+[docs/sysupdate.md](docs/sysupdate.md).
 
 ## VSCode plugins
 

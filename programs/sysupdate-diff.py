@@ -9,7 +9,9 @@ downloads nothing, because a .drv is enough to know a package's version.
 
 The consequence is that only version changes are reported. A name on one side
 only (a package added, a package dropped, a build-time-only dependency) has
-nothing to compare against and is left out.
+nothing to compare against and is left out, as is anything whose version is not
+version-shaped -- see VERSION below, which is what keeps source tarballs from
+masquerading as packages.
 
 Writes into the state directory:
 
@@ -35,11 +37,28 @@ STALE_DAYS = 14
 # How many watched packages the notice lists before truncating.
 MAX_LISTED = 5
 
-# Multiple-output store paths (curl-8.9.1-bin, glibc-2.40-dev) parse as a
-# version with the output glued on. Strip those so the two sides compare.
-OUTPUTS = (
+# Suffixes that parse as part of the version but are not: the outputs of a
+# multiple-output package (curl-8.9.1-bin, glibc-2.40-dev), and the vendored
+# dependency sets a build fetches alongside it (gh-2.99.0-go-modules). Both
+# carry the package's own version, so stripping them is what makes the two
+# sides compare.
+SUFFIXES = (
     "bin", "dev", "devdoc", "doc", "info", "lib", "man", "out", "static", "debug",
+    "go-modules", "source", "vendor", "deps", "cargo-deps", "npm-deps",
+    "node-modules",
 )
+
+# What a version is allowed to look like: every dot-separated component after
+# the first has to start with a digit.
+#
+# This is not pedantry. The candidate side is a derivation closure, which
+# includes the fetchurl derivations a package is built from, and those are
+# named after the file they download -- curl-8.21.0.tar.xz.drv. That parses as
+# curl 8.21.0.tar.xz, which sorts above the real 8.21.0 and hides it, so the
+# notice ends up reporting "curl 8.21.0 -> 8.21.0.tar.xz". A dot followed by a
+# letter is a file extension, not a version. Versions nixpkgs really uses
+# (5.2p37, 1.0.2u, 0-unstable-2026-01-01, 26.05.20260903) all pass.
+VERSION = re.compile(r"^[0-9][0-9A-Za-z+_~-]*(\.[0-9][0-9A-Za-z+_~-]*)*$")
 
 STORE_PATH = re.compile(r"^/nix/store/[a-z0-9]{32}-(?P<name>.+)$")
 
@@ -61,10 +80,12 @@ def parse_store_path(path: str) -> tuple[str, str] | None:
     else:
         return None
 
-    for output in OUTPUTS:
-        version = version.removesuffix(f"-{output}")
+    for suffix in SUFFIXES:
+        version = version.removesuffix(f"-{suffix}")
 
-    return (name, version) if version else None
+    # Anything left that is not version-shaped is a source or an artefact, not
+    # a package. Dropping it here keeps it off both sides at once.
+    return (name, version) if VERSION.match(version) else None
 
 
 def version_key(version: str) -> list:
@@ -171,7 +192,8 @@ def render(rows: list[dict], watch: list[str], inputs: dict, color: bool) -> str
     # what the ... stands for, so they are not counted here twice.
     rest = len(rows) - len(watched)
     if rest > 0:
-        lines.append(f" + {rest} other packages in the system closure")
+        plural = "package" if rest == 1 else "packages"
+        lines.append(f" + {rest} other {plural} in the system closure")
 
     for name, revs in sorted(inputs.items()):
         if name == "nixpkgs" or revs["old"] == revs["new"]:

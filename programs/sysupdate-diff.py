@@ -10,8 +10,8 @@ downloads nothing, because a .drv is enough to know a package's version.
 The consequence is that only version changes are reported. A name on one side
 only (a package added, a package dropped, a build-time-only dependency) has
 nothing to compare against and is left out, as is anything whose version is not
-version-shaped -- see VERSION below, which is what keeps source tarballs from
-masquerading as packages.
+version-shaped -- see VERSION below, which together with ALPHA_TAIL is what
+keeps source tarballs and build artefacts from masquerading as packages.
 
 Writes into the state directory:
 
@@ -37,16 +37,17 @@ STALE_DAYS = 14
 # How many watched packages the notice lists before truncating.
 MAX_LISTED = 5
 
-# Suffixes that parse as part of the version but are not: the outputs of a
-# multiple-output package (curl-8.9.1-bin, glibc-2.40-dev), and the vendored
-# dependency sets a build fetches alongside it (gh-2.99.0-go-modules). Both
-# carry the package's own version, so stripping them is what makes the two
-# sides compare.
-SUFFIXES = (
-    "bin", "dev", "devdoc", "doc", "info", "lib", "man", "out", "static", "debug",
-    "go-modules", "source", "vendor", "deps", "cargo-deps", "npm-deps",
-    "node-modules",
-)
+# A trailing all-letters segment is a suffix, not part of the version. The
+# store is full of derivations named after a package plus what they are to it:
+# outputs (curl-8.9.1-bin, glibc-2.40-dev), vendored dependency sets
+# (gh-2.99.0-go-modules, mise-2026.5.12-vendor-staging), build artefacts
+# (jq-1.8.2-binlore), wrappers (firefox-141.0-unwrapped). They all carry the
+# package's own version, so stripping is what makes the two sides compare.
+#
+# A rule rather than a list of known suffixes, because that list never ends --
+# and a tail with a digit in it (1.8.2-rc1, 2.4.9-p1) is part of the version
+# and stays.
+ALPHA_TAIL = re.compile(r"-[A-Za-z_]+$")
 
 # What a version is allowed to look like: every dot-separated component after
 # the first has to start with a digit.
@@ -80,8 +81,11 @@ def parse_store_path(path: str) -> tuple[str, str] | None:
     else:
         return None
 
-    for suffix in SUFFIXES:
-        version = version.removesuffix(f"-{suffix}")
+    while True:
+        stripped = ALPHA_TAIL.sub("", version)
+        if stripped == version or not stripped:
+            break
+        version = stripped
 
     # Anything left that is not version-shaped is a source or an artefact, not
     # a package. Dropping it here keeps it off both sides at once.
@@ -136,6 +140,21 @@ def read_json(path: str, fallback):
         return fallback
 
 
+def is_suffix_pair(old: str, new: str) -> bool:
+    """True when one version is the other plus a suffix, e.g. 1.2.3-x86_64.
+
+    ALPHA_TAIL catches the common shape, but not one whose suffix starts with a
+    digit -- a target triple (1.2.3-x86_64-unknown-linux-gnu) stops it dead.
+    Nothing real ever bumps a package from X to X-something, so treat it as the
+    naming artefact it is rather than reporting an update that is not one.
+    """
+    longer, shorter = (new, old) if len(new) > len(old) else (old, new)
+    tail = longer[len(shorter):]
+    return longer.startswith(shorter) and tail.startswith("-") and any(
+        char.isalpha() for char in tail
+    )
+
+
 def days_between(then: str, now: datetime) -> int:
     try:
         seen = datetime.fromisoformat(then)
@@ -152,6 +171,8 @@ def build_rows(old: dict[str, str], new: dict[str, str], first_seen: dict[str, s
     for name, old_version in sorted(old.items()):
         new_version = new.get(name)
         if new_version is None or new_version == old_version:
+            continue
+        if is_suffix_pair(old_version, new_version):
             continue
         seen = first_seen.get(name, stamp)
         rows.append({

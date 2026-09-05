@@ -1,2 +1,5 @@
 prompt
 hardware-configuration.nix
+
+# nixos-rebuild build, when run by hand in this directory
+/result

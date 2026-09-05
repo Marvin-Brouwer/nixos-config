@@ -15,6 +15,8 @@
     let
       system = "x86_64-linux";
     in {
+      # The attribute name is the host name, and `sysupdate` builds
+      # `.#${hostName}` from configuration.nix -- keep the two in step.
       nixosConfigurations.nix-wsl = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [

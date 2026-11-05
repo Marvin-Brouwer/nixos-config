@@ -45,7 +45,8 @@ let
     # git comes from programs.git rather than the list above, so it is named
     # here explicitly. Otherwise the one package most worth seeing a version
     # bump for would be the one the notice never mentions.
-    watch = systemTools ++ [ pkgs.git ];
+    # Docker is installed by virtualisation.docker below, for the same reason.
+    watch = systemTools ++ [ pkgs.git config.virtualisation.docker.package ];
   };
 in
 {
@@ -55,7 +56,9 @@ in
   # Ensure both users exist during transition
   users.users.${mainUser} = {
     isNormalUser = true;
-    extraGroups = ["wheel" "networkmanager"];
+    # docker: use the Docker Engine below without sudo. Membership is
+    # root-equivalent, which is the usual trade on a single-user dev box.
+    extraGroups = ["wheel" "networkmanager" "docker"];
   };
 
   # System-wide packages.
@@ -107,6 +110,21 @@ in
   programs.nix-ld = {
     enable = true;
     libraries = import ./lib/nix-ld-libs.nix { inherit pkgs lib; };
+  };
+
+  # Docker Engine, in this distro rather than through Docker Desktop.
+  #
+  # A daemon is the machine, not a per-project tool: it runs as root and owns
+  # cgroups, iptables and the kernel modules, so mise cannot provide it. Docker
+  # Desktop's WSL integration is no substitute either, because it runs
+  # containers in its own docker-desktop distro, whose VM root disk is too small
+  # for things like a self-hosted E2B (and which is not this system at all).
+  #
+  # Not started on boot: the socket is, and the first `docker` command starts
+  # the daemon. So a WSL session that never touches containers pays nothing.
+  virtualisation.docker = {
+    enable = true;
+    enableOnBoot = false;
   };
 
   # mise: per-project tool versions.

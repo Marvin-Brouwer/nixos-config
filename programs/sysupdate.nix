@@ -12,7 +12,7 @@
 #
 # On a bare-metal host autoUpgrade is still worth having, for the other half of
 # the problem: pointed at the pushed repo it deploys a flake.lock this command
-# already decided on and committed. See docs/sysupdate.md.
+# already decided on, committed and pushed. See docs/sysupdate.md.
 #
 # Three commands come out of this file:
 #
@@ -386,9 +386,28 @@ let
 
       if ${pkgs.git}/bin/git commit -q -m "$subject" -m "$body" -- flake.lock; then
         info "Committed the flake.lock bump."
-        say "Push it when you want the other machine to pick it up."
+        push_lock
       else
         warn "could not commit flake.lock, it is left in the working tree"
+      fi
+    }
+
+    # Pushing is what carries the bump to the other machine, and only ever
+    # follows a commit, which only ever follows a successful switch or boot.
+    # A failed push is a warning, not a failure: the system is already
+    # activated and the commit is safe locally, so the run itself succeeded.
+    push_lock() {
+      local upstream
+      upstream=$(${pkgs.git}/bin/git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null) || {
+        warn "this branch has no upstream, leaving the commit unpushed"
+        return 0
+      }
+
+      info "Pushing to $upstream..."
+      if ${pkgs.git}/bin/git push -q; then
+        info "Pushed."
+      else
+        warn "could not push to $upstream, the commit is still local. Push it by hand."
       fi
     }
 

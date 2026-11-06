@@ -42,7 +42,7 @@ The main flow, in order:
 3. writes `flake.lock` and builds the new system, without touching the running one
 4. shows `nvd diff /run/current-system <new>`, exact old to new versions
 5. asks: apply now, stage for next start, or discard
-6. commits the `flake.lock` bump
+6. commits the `flake.lock` bump and pushes it
 
 Apply is `nixos-rebuild switch`. Stage is `nixos-rebuild boot`, which takes
 effect after `wsl --shutdown` from Windows; until then the notice says so
@@ -50,8 +50,15 @@ rather than nagging about updates you have already dealt with. Discard puts
 `flake.lock` back exactly where it was.
 
 Committing is the point of step 6: it is what keeps the machine reproducible,
-and pushing is what carries the same bump to another machine. `sysupdate` does
-not push -- that stays your call.
+and pushing is what carries the same bump to another machine. Both only happen
+after a successful apply or stage; a discard or a failed build commits and
+pushes nothing.
+
+The push is a plain `git push` of the current branch to its upstream, so any
+other local commits on that branch go along with it. A branch without an
+upstream, or a push that fails (offline, behind the remote, rejected), is a
+warning rather than an error: the system is already activated and the commit
+stays local for you to push by hand.
 
 ## Why it is a command, and not a timer that just does it
 

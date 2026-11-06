@@ -78,12 +78,28 @@ bash ./setup.sh
 
 That enables flakes, symlinks `/etc/nixos` here, rebuilds the system, and installs
 the VSCode WSL Remote extension on the Windows side. Then restart WSL from a
-Windows terminal so the new system takes effect:
+Windows terminal so the new system takes effect, and make its disk sparse while
+it's down:
 
 ```bash
 wsl --shutdown
+wsl --manage NixOS --set-sparse true   # the distro name from `wsl -l`
 wsl
 ```
+
+Without the sparse flag the `.vhdx` only ever grows: space freed inside WSL,
+by `rig compact` for instance, stays allocated on the Windows side. It can only
+be set while WSL is shut down, so `setup.sh` prints it rather than running it,
+with your distro's name filled in. To have every new distro start out sparse,
+put this in `%UserProfile%\.wslconfig` before importing:
+
+```ini
+[experimental]
+sparseVhd=true
+```
+
+`rig doctor` warns if the disk isn't sparse, so you'll hear about it if this
+step was skipped.
 
 ## One prefix for everything
 

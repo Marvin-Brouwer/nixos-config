@@ -71,6 +71,7 @@ let
     inline = {
       HELPERS = ./helpers.sh;
       HIGHLIGHT = ../../lib/highlight.sh;
+      CONFIG_REPO = ../../lib/config-repo.sh;
     };
     vars = shared // {
       # Names the notice is allowed to spell out, from the same list that builds
@@ -103,6 +104,7 @@ let
     inline = {
       HELPERS = ./helpers.sh;
       HIGHLIGHT = ../../lib/highlight.sh;
+      CONFIG_REPO = ../../lib/config-repo.sh;
       PARTS = ./sysupdate.d;
     };
     vars = shared // {

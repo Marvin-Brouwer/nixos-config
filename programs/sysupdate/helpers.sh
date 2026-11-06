@@ -7,16 +7,7 @@ info() { printf '\033[1;34m[INFO]\033[0m %s\n' "$(highlight "$*")"; }
 warn() { printf '\033[1;33m[WARN]\033[0m %s\n' "$(highlight "$*")"; }
 die()  { printf '\033[1;31msysupdate:\033[0m %s\n' "$(highlight "$*")" >&2; exit 1; }
 
-# /etc/nixos is a symlink to the repo, put there by setup.sh. Resolving it
-# rather than hardcoding ~/nixos-config keeps this working when the check
-# runs as root and the repo lives in someone's home.
-repo_root() {
-  local root
-  root=$(readlink -f /etc/nixos) || return 1
-  [ -n "$root" ] || return 1
-  git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
-  printf '%s\n' "$root"
-}
+# repo_root comes from lib/config-repo.sh, sourced by the script ahead of this.
 
 # What the inputs would move to, without writing flake.lock.
 #

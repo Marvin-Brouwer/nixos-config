@@ -19,7 +19,11 @@ set -uo pipefail
 # shellcheck source=../../lib/highlight.sh
 . "$HIGHLIGHT"
 
-# Defines info, warn, die, repo_root, candidate_lock and input_revs.
+# Defines repo_root.
+# shellcheck source=../../lib/config-repo.sh
+. "$CONFIG_REPO"
+
+# Defines info, warn, die, candidate_lock and input_revs.
 # shellcheck source=helpers.sh
 . "$HELPERS"
 

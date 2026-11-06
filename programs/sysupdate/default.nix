@@ -103,5 +103,5 @@ let
 
 in
 {
-  inherit sysupdate check notice;
+  inherit sysupdate check notice stateDir;
 }

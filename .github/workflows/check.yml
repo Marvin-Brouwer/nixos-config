@@ -1,0 +1,52 @@
+# Builds the whole system on every push and pull request, so a change that does
+# not build shows up red here rather than on the next `rig sysupdate`. That
+# includes the flake.lock bumps sysupdate commits and pushes: CI building the
+# new lock is the second opinion on an update you already applied.
+#
+# The build is the real test. Each command under programs/ is shellchecked as
+# part of building it, and evaluating the system catches every Nix mistake.
+# The lint job adds what the build cannot see: the sourced parts on their own,
+# and the prompt hook, which is not a command.
+
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      # The same task as locally, with shellcheck from the flake's own nixpkgs.
+      - uses: jdx/mise-action@v2
+        with:
+          install: false
+      - run: mise trust && mise run lint
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      # Nearly everything comes from cache.nixos.org; only what this repo
+      # defines is actually built. The result is not kept.
+      - name: Build the system
+        run: >
+          nix build --no-link --print-build-logs
+          .#nixosConfigurations.nix-wsl.config.system.build.toplevel
+      - name: Size of the closure
+        run: >
+          nix path-info --closure-size --human-readable
+          .#nixosConfigurations.nix-wsl.config.system.build.toplevel

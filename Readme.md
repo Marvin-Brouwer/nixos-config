@@ -39,6 +39,9 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   │   │   ├─ *.sh                 #   one script per command, plus helpers
 │   │   │   ├─ sysupdate.d/         #   sysupdate's steps, sourced in order
 │   │   │   └─ diff.py              #   the closure diff behind the notice
+│   │   ├─ compact/                 # disk clean-up command, check, shell notice
+│   │   ├─ doctor/                  # the health check, doctor.d/ per area
+│   │   ├─ scratch/                 # throwaway repo with a preset
 │   │   ├─ vscode/                  # the plugin sync command
 │   │   │   ├─ default.nix
 │   │   │   ├─ sync.sh
@@ -89,6 +92,9 @@ rig --help                 # every command, one line each
 rig repoconfig --help      # that command's own help page
 rig repoconfig --list      # the presets
 rig sysupdate              # see and apply system updates
+rig compact                # free disk space, see docs/compact.md
+rig doctor                 # something is off? see docs/doctor.md
+rig scratch ts             # a throwaway repo, see docs/scratch.md
 ```
 
 Tab completion covers the command names and their first argument. Only `rig`
@@ -177,6 +183,23 @@ Nothing here is `system.autoUpgrade`. It activates silently, which defeats the
 purpose, and in WSL its timer never fires anyway. Why, and how the background
 check works without slowing down your prompt, is in
 [docs/sysupdate.md](docs/sysupdate.md).
+
+## Housekeeping
+
+`rig compact` removes system generations older than 14 days, the store paths
+nothing uses any more, Docker's leftovers and mise tool versions no project asks
+for, then trims the disk so the WSL `.vhdx` can shrink. It shows what it would
+remove and asks first. A daily timer measures whether a run is worth it, and
+when it is, new shells say so, but only when sysupdate has nothing to say. See
+[docs/compact.md](docs/compact.md).
+
+`rig doctor` checks every piece this setup depends on (nix-ld, interop, Docker,
+mise, the timers, the repo you're in) and says per piece whether it's fine and
+what to do if not. See [docs/doctor.md](docs/doctor.md).
+
+`rig scratch [preset]` makes a temp repo, runs repoconfig in it and drops you in
+a shell there. Leaving the shell offers to delete it. See
+[docs/scratch.md](docs/scratch.md).
 
 ## VSCode plugins
 

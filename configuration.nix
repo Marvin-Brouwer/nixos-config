@@ -73,6 +73,23 @@ let
         usage = "vscode-sync [--wait|--detach]";
         complete = [ "--wait" "--detach" ];
       };
+      compact = {
+        package = compact.compact;
+        summary = "free disk space: old generations, Docker, unused mise tools";
+        usage = "compact [--yes|--status|--check]";
+        complete = [ "--yes" "--status" "--check" ];
+      };
+      doctor = {
+        package = doctor;
+        summary = "check every piece this setup leans on, when something is off";
+        usage = "doctor";
+      };
+      scratch = {
+        package = scratch;
+        summary = "a throwaway repo with a preset, and a shell in it";
+        usage = "scratch [preset] [--keep]";
+        complete = [ "--keep" ] ++ repoconfig.presets;
+      };
       playwright = {
         package = playwright;
         bin = "playwright-fhs";
@@ -99,6 +116,22 @@ let
     # bump for would be the one the notice never mentions.
     # Docker is installed by virtualisation.docker below, for the same reason.
     watch = systemTools ++ [ pkgs.git config.virtualisation.docker.package ];
+  };
+  # Both read sysupdate's state directory: the clean-up notice stays quiet while
+  # an update is pending, and doctor checks the update timer still runs.
+  sysupdateStateDir = sysupdate.stateDir;
+  compact = import ./programs/compact {
+    inherit pkgs lib isWsl sysupdateStateDir;
+    prefix = devPrefix;
+  };
+  doctor = import ./programs/doctor {
+    inherit pkgs lib isWsl sysupdateStateDir;
+    prefix = devPrefix;
+    compactStateDir = compact.stateDir;
+  };
+  scratch = import ./programs/scratch {
+    inherit pkgs lib repoconfig;
+    prefix = devPrefix;
   };
 in
 {
@@ -195,6 +228,10 @@ in
     # which is the point -- this box lives in WSL and is easy to forget.
     ${sysupdate.notice}/bin/sysupdate-notice
 
+    # The same for disk space, but only when sysupdate printed nothing: one
+    # nag per shell, and the update comes first. See programs/compact.
+    ${compact.notice}/bin/compact-notice
+
     # Names `repoconfig` when you cd into a repo it has not been run in. See
     # programs/repoconfig.
     ${repoconfig.shellInit}
@@ -251,6 +288,38 @@ in
       OnBootSec = "2min";
       OnUnitActiveSec = "12h";
       Unit = "sysupdate-check.service";
+    };
+  };
+
+  # Whether `compact` is worth running, measured the same way: a timer writes
+  # the answer, the shell only prints it. Measuring walks the Nix store, which
+  # is fine at idle priority and not fine in front of a prompt.
+  systemd.services.compact-check = {
+    description = "Check whether a clean-up is worth running";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${compact.check}/bin/compact-check";
+      # The main user, so `compact` can clear the notice after a run without
+      # sudo. Listing dead store paths goes through the daemon, which needs no
+      # root either.
+      User = mainUser;
+      StateDirectory = "compact";
+      StateDirectoryMode = "0755";
+      Nice = 19;
+      IOSchedulingClass = "idle";
+      CPUSchedulingPolicy = "idle";
+    };
+  };
+
+  systemd.timers.compact-check = {
+    description = "Check whether a clean-up is worth running";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      # After the update check has had its turn at boot. The stamp file in
+      # compact-check is the real once-a-day limit, as with sysupdate.
+      OnBootSec = "10min";
+      OnUnitActiveSec = "24h";
+      Unit = "compact-check.service";
     };
   };
 

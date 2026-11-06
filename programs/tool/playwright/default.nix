@@ -43,6 +43,15 @@
 let
   browserLibs = import ../../../lib/nix-ld-libs.nix { inherit pkgs lib; };
 
+  # node 24 stays the default while projects move to 26. Both cannot sit in the
+  # sandbox as-is, since each ships bin/node, so 26 comes in as node26, npm26
+  # and npx26. Each puts 26 first on PATH, so whatever it starts gets 26 as
+  # well, including the `#!/usr/bin/env node` in npm itself.
+  node26 = map (bin: pkgs.writeShellScriptBin "${bin}26" ''
+    export PATH=${pkgs.nodejs_26}/bin:$PATH
+    exec ${pkgs.nodejs_26}/bin/${bin} "$@"
+  '') [ "node" "npm" "npx" ];
+
   fhs = pkgs.buildFHSEnv {
     name = "playwright-fhs";
     targetPkgs =
@@ -54,12 +63,13 @@ let
         mise
         # ...but keep a working node here too, so the sandbox is still
         # useful as break-glass in a repo that has no mise.toml.
-        nodejs_26
+        nodejs_24
         pnpm_12
         cacert
         curl
         git
-      ]);
+      ])
+      ++ node26;
     profile = ''
       export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
     '';

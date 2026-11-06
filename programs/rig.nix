@@ -92,5 +92,7 @@ let
   '';
 in
 {
-  inherit package completion;
+  # commands too, for anything else generated from the same list, such as the
+  # Claude skill in programs/claude-skill.
+  inherit package completion commands;
 }

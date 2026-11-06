@@ -133,6 +133,14 @@ let
     inherit pkgs lib repoconfig;
     prefix = devPrefix;
   };
+  # What Claude Code knows about this machine, from the same list as rig --help.
+  claudeSkill = import ./programs/claude-skill {
+    inherit pkgs lib;
+    inherit (rig) commands;
+    prefix = devPrefix;
+    docs = ./docs;
+  };
+  mainHome = config.users.users.${mainUser}.home;
 in
 {
   # Configure network identity
@@ -290,6 +298,16 @@ in
       Unit = "sysupdate-check.service";
     };
   };
+
+  # The Claude Code skill, as a user skill: ~/.claude/skills/<prefix> is a
+  # symlink into the store, so it follows every rebuild. tmpfiles rather than a
+  # home-manager file, since nothing else here needs home-manager. L+ replaces
+  # whatever is at that one path; the rest of ~/.claude is left alone.
+  systemd.tmpfiles.rules = [
+    "d ${mainHome}/.claude 0700 ${mainUser} users -"
+    "d ${mainHome}/.claude/skills 0755 ${mainUser} users -"
+    "L+ ${mainHome}/.claude/skills/${devPrefix} - - - - ${claudeSkill}"
+  ];
 
   # Whether `compact` is worth running, measured the same way: a timer writes
   # the answer, the shell only prints it. Measuring walks the Nix store, which

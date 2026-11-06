@@ -39,6 +39,7 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   │   │   ├─ *.sh                 #   one script per command, plus helpers
 │   │   │   ├─ sysupdate.d/         #   sysupdate's steps, sourced in order
 │   │   │   └─ diff.py              #   the closure diff behind the notice
+│   │   ├─ claude-skill/            # the Claude Code skill that knows rig
 │   │   ├─ compact/                 # disk clean-up command, check, shell notice
 │   │   ├─ doctor/                  # the health check, doctor.d/ per area
 │   │   ├─ scratch/                 # throwaway repo with a preset
@@ -96,6 +97,10 @@ rig compact                # free disk space, see docs/compact.md
 rig doctor                 # something is off? see docs/doctor.md
 rig scratch ts             # a throwaway repo, see docs/scratch.md
 ```
+
+Claude Code knows them too. The config installs a user skill at
+`~/.claude/skills/rig` (`programs/claude-skill/`) listing every command and doc
+page. It is generated from the same list as `rig --help`, so it can't drift.
 
 Tab completion covers the command names and their first argument. Only `rig`
 is on PATH; the commands are not installed under their own names.

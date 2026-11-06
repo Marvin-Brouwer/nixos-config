@@ -38,8 +38,51 @@ let
   ];
 
   vscode = import ./programs/vscode.nix { inherit pkgs lib; };
-  repoconfig = import ./programs/repoconfig.nix { inherit pkgs lib; };
-  devhelp = import ./programs/devhelp.nix { inherit pkgs; };
+  repoconfig = import ./programs/repoconfig.nix { inherit pkgs lib; prefix = devPrefix; };
+  # `dev` is the one name to remember; see programs/dev.nix. Every command this
+  # repo builds is listed here, so a new one is an entry rather than a name to
+  # forget.
+  # The prefix itself. Renaming it is this one string.
+  devPrefix = "dev";
+  dev = import ./programs/dev.nix {
+    inherit pkgs lib;
+    prefix = devPrefix;
+    commands = {
+      repoconfig = {
+        package = repoconfig.repoconfig;
+        summary = "set up the git repo you are in, once after cloning";
+        usage = "repoconfig <preset> <email>, --list for presets";
+        complete = [ "--list" ] ++ repoconfig.presets;
+      };
+      sysupdate = {
+        package = sysupdate.sysupdate;
+        summary = "see pending system updates and apply or stage them";
+        usage = "sysupdate [--status|--check|--audit]";
+        complete = [ "--status" "--check" "--audit" ];
+      };
+      vscode-sync = {
+        package = vscode;
+        summary = "sync VSCode plugins for this repo (runs on entering one)";
+        usage = "vscode-sync [--wait|--detach]";
+        complete = [ "--wait" "--detach" ];
+      };
+      playwright = {
+        package = playwright;
+        bin = "playwright-fhs";
+        summary = "FHS sandbox for browsers nix-ld does not cover";
+        usage = "playwright [-c 'command']";
+        # The sandbox runs bash, so --help would be bash's.
+        help = ''
+          usage: ${devPrefix} playwright [-c 'command']
+
+          Opens a bash shell in an FHS sandbox with the browser libraries, mise,
+          node and pnpm, for when nix-ld is not enough for a browser. Arguments
+          go to that bash, so -c 'pnpm exec playwright test' runs one command
+          and exits. Same as playwright-fhs.
+        '';
+      };
+    };
+  };
   playwright = import ./tools/playwright.nix { inherit pkgs lib; };
   sysupdate = import ./programs/sysupdate.nix {
     inherit pkgs lib hostName isWsl;
@@ -76,8 +119,8 @@ in
     # The hint that names it on entering a repo is in the shell init below.
     repoconfig.repoconfig
 
-    # The list of the commands above, for when their names will not come.
-    devhelp
+    # One prefix for all of the above: `dev --help`.
+    dev.package
 
     # Break-glass FHS sandbox for when nix-ld does not cover a browser.
     playwright
@@ -154,6 +197,9 @@ in
     # Names `repoconfig` when you cd into a repo it has not been run in. See
     # programs/repoconfig.nix.
     ${repoconfig.shellInit}
+
+    # Tab completion for the prefix.
+    ${dev.completion}
   '';
 
   # Pending system updates.

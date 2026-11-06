@@ -24,7 +24,7 @@
 #                moment the name is needed and the moment it is forgotten
 # -----------------------------------------------------------------
 
-{ pkgs, lib }:
+{ pkgs, lib, prefix }:
 
 let
   gitUserName = "Marvin Brouwer";
@@ -123,9 +123,42 @@ let
     })
   ) recommendations;
 
+  # One line per preset for `--list`. The preset names everywhere else (usage,
+  # the case below, the prompt hint, completion) come from these keys, so adding
+  # a preset is a mise.toml, a recommendations entry and a line here.
+  descriptions = {
+    empty  = "no tools, just the mise.toml and extensions.json skeletons";
+    ts     = "node lts, pnpm, typescript; TS plugins; setup task runs pnpm install";
+    dotnet = "latest .NET SDK; C# plugin; setup task runs dotnet restore";
+  };
+  presets = lib.attrNames descriptions;
+
   # Plain text, shared by the command and the prompt hook below so the two
   # cannot drift apart.
-  usage = "usage: repoconfig <empty|ts|dotnet> <email>";
+  usage = "usage: repoconfig <${lib.concatStringsSep "|" presets}> <email>";
+
+  # lib.fixedWidthString pads on the left, which right-aligns the names.
+  listText = lib.concatMapStrings (name:
+    let pad = lib.concatStrings (lib.genList (_: " ") (8 - lib.stringLength name));
+    in "  ${name}${pad}${descriptions.${name}}\n") presets;
+
+  helpText = ''
+    ${usage}
+           repoconfig --list
+           repoconfig --help
+
+    Sets up the git repo you are in for this machine:
+
+      1. git identity (user.name, user.email) on the repo
+      2. mise.toml from the preset, then mise trust
+      3. an empty mise.lock, so mise starts pinning versions
+      4. .vscode/extensions.json from the preset
+      5. mise.local.toml in .git/info/exclude
+      6. mise install, mise lock, vscode-sync
+
+    Nothing that exists is overwritten, so re-running is safe.
+    --list shows the presets. Details: ~/nixos-config/docs/repoconfig.md
+  '';
 
   repoconfig = pkgs.writeShellScriptBin "repoconfig" ''
     set -uo pipefail
@@ -140,13 +173,16 @@ let
 
     case "$PRESET" in
       -h|--help)
-        printf '%s\n\n%s\n' "${usage}" \
-          "Sets up the repo you are in. Safe to re-run. See docs/repoconfig.md."
+        ${pkgs.coreutils}/bin/cat <<'HELP'
+    ${helpText}HELP
         exit 0 ;;
-      empty)  MISE_SRC=${miseToml.empty};  EXT_SRC=${extensionsJson.empty}  ;;
-      ts)     MISE_SRC=${miseToml.ts};     EXT_SRC=${extensionsJson.ts}     ;;
-      dotnet) MISE_SRC=${miseToml.dotnet}; EXT_SRC=${extensionsJson.dotnet} ;;
-      *) die "${usage}" ;;
+      -l|--list)
+        printf 'Presets:\n\n${listText}\n'
+        exit 0 ;;
+    ${lib.concatMapStrings (name: ''
+      ${name}) MISE_SRC=${miseToml.${name}}; EXT_SRC=${extensionsJson.${name}} ;;
+    '') presets}
+      *) die "${usage} (presets: repoconfig --list)" ;;
     esac
     [ -n "$EMAIL" ] || die "${usage}"
 
@@ -260,12 +296,12 @@ let
       [ -f "$root/mise.toml" ] || [ -f "$root/.mise.toml" ] && return
       [ "$(${pkgs.git}/bin/git -C "$root" config --bool repoconfig.skip 2>/dev/null)" = true ] && return
 
-      printf '\033[1;33mThis repo is not set up yet, run:\033[0m %s\n' "${lib.removePrefix "usage: " usage}"
-      printf '   (devhelp lists every command on this machine)\n'
+      printf '\033[1;33mThis repo is not set up yet, run:\033[0m %s\n' "${prefix} ${lib.removePrefix "usage: " usage}"
+      printf '   (${prefix} --help lists every command on this machine)\n'
     }
     PROMPT_COMMAND="__repoconfig_hint''${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
   '';
 in
 {
-  inherit repoconfig shellInit;
+  inherit repoconfig shellInit presets;
 }

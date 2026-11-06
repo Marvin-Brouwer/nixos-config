@@ -1,5 +1,6 @@
 # shellcheck shell=bash
-# `compact-notice`, printed on interactive shell start, after sysupdate-notice.
+# `compact-notice`, printed on interactive shell start, but only when there is
+# no sysupdate to run: sysupdate-notice has nothing pending or staged to show.
 # Built by default.nix with writeShellApplication: the tools it calls come from
 # runtimeInputs on PATH, and the variables checked below are set by Nix ahead
 # of this script.

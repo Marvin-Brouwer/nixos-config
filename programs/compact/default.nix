@@ -14,7 +14,8 @@
 #                   (its steps are compact.d/, sourced in order)
 #   compact-check   check.sh    the background job, run by a systemd timer
 #   compact-notice  notice.sh   prints the cached result on shell start, but
-#                               only when sysupdate has nothing to say
+#                               only when there is no sysupdate to run
+#   compact-vhd     vhd.sh      asks Windows whether the .vhdx is sparse
 #
 # helpers.sh is what the first two share: measuring what a run would free.
 # See docs/compact.md.
@@ -39,11 +40,24 @@ let
     PREFIX = prefix;
   };
 
+  # Every message that names a command colours it; see lib/highlight.sh.
+  highlight = ../../lib/highlight.sh;
+
+  vhd = script.application {
+    name = "compact-vhd";
+    file = ./vhd.sh;
+    runtimeInputs = with pkgs; [ coreutils glibc.bin ];
+    vars.VHD_PS1 = ./vhd.ps1;
+  };
+
   check = script.application {
     name = "compact-check";
     file = ./check.sh;
     runtimeInputs = with pkgs; [ coreutils nix gawk ];
-    inline.HELPERS = ./helpers.sh;
+    inline = {
+      HELPERS = ./helpers.sh;
+      HIGHLIGHT = highlight;
+    };
     vars = shared // {
       # Either one is enough to say something. 5 GiB of dead store paths is a
       # few nixpkgs bumps' worth; ten old generations is a month of updates.
@@ -69,9 +83,10 @@ let
     file = ./compact.sh;
     # docker and mise are looked up rather than listed: they come from the
     # system, and a step whose tool is missing is skipped instead of failing.
-    runtimeInputs = with pkgs; [ coreutils nix gawk gnugrep util-linux systemd check notice ];
+    runtimeInputs = with pkgs; [ coreutils nix gawk gnugrep util-linux systemd check notice vhd ];
     inline = {
       HELPERS = ./helpers.sh;
+      HIGHLIGHT = highlight;
       PARTS = ./compact.d;
     };
     vars = shared // {
@@ -80,5 +95,5 @@ let
   };
 in
 {
-  inherit compact check notice stateDir;
+  inherit compact check notice vhd stateDir;
 }

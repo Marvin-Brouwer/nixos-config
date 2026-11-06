@@ -13,10 +13,14 @@ set -uo pipefail
 
 EXCLUDE=".git/info/exclude"
 
-say()  { printf '   %s\n' "$*"; }
+# Defines highlight.
+# shellcheck source=../../lib/highlight.sh
+. "$HIGHLIGHT"
+
+say()  { printf '   %s\n' "$(highlight "$*")"; }
 made() { printf '   \033[1;32mcreated\033[0m %s\n' "$*"; }
 kept() { printf '   \033[1;33mkept\033[0m    %s (already present)\n' "$*"; }
-die()  { printf '\033[1;31mrepoconfig:\033[0m %s\n' "$*" >&2; exit 1; }
+die()  { printf '\033[1;31mrepoconfig:\033[0m %s\n' "$(highlight "$*")" >&2; exit 1; }
 
 # The steps, inlined here by lib/shell-script.nix when the command is built.
 # shellcheck source=repoconfig.d/help.sh
@@ -54,7 +58,7 @@ find_preset() {
   for name in "${presets[@]}"; do
     [ "$name" = "$PRESET" ] && PRESET_DIR="$PRESETS_DIR/$name"
   done
-  [ -n "$PRESET_DIR" ] || die "$USAGE (presets: $PREFIX repoconfig --list)"
+  [ -n "$PRESET_DIR" ] || die "$USAGE (presets: \`$PREFIX repoconfig --list\`)"
   MISE_SRC="$PRESET_DIR/mise.toml"
   EXT_SRC="$PRESET_DIR/extensions.json"
   DEVCONTAINER_SRC="$PRESET_DIR/devcontainer.json"
@@ -91,7 +95,9 @@ main() {
   # host, which is exactly what it is for avoiding.
   if [ -n "$SANDBOX" ]; then
     write_sandbox
-    printf '\n   Done. Open the repo in VS Code and run "Dev Containers: Reopen in Container".\n\n'
+    echo
+    say "Done. Open the repo in VS Code and run \`Dev Containers: Reopen in Container\`."
+    echo
     exit 0
   fi
 

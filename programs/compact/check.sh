@@ -14,6 +14,10 @@ set -uo pipefail
 : "${STATE_DIR:?}" "${KEEP_DAYS:?}" "${PREFIX:?}"
 : "${DEAD_THRESHOLD:?}" "${GENERATIONS_THRESHOLD:?}" "${MIN_INTERVAL:?}"
 
+# Defines highlight.
+# shellcheck source=../../lib/highlight.sh
+. "$HIGHLIGHT"
+
 # Defines info, warn, die, dead_bytes, old_generations and human.
 # shellcheck source=helpers.sh
 . "$HELPERS"
@@ -52,13 +56,13 @@ write_notice() {
     echo "This machine could use a clean-up:"
     printf ' - %s\n' "${reasons[@]}"
     echo
-    echo " run $PREFIX compact to reclaim it"
+    echo " run \`$PREFIX compact --yes\` to reclaim it"
   } > "$STATE_DIR/status.txt.tmp"
 
   {
     printf '\033[1;33mThis machine could use a clean-up:\033[0m\n'
     printf ' - %s\n' "${reasons[@]}"
-    printf '\n run \033[1m%s compact\033[0m to reclaim it\n' "$PREFIX"
+    printf '\n %s\n' "$(highlight "run \`$PREFIX compact --yes\` to reclaim it")"
   } > "$STATE_DIR/status.ansi.tmp"
 
   mv "$STATE_DIR/status.txt.tmp" "$STATE_DIR/status.txt"

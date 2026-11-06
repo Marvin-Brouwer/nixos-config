@@ -19,7 +19,7 @@ You have pending system updates!
  + 143 other packages in the system closure
  + nixos-wsl module: d57af92 -> 9e8d7c6
 
- run rig sysupdate to update
+ run `rig sysupdate` to update
 ```
 
 The package name turns red once an update has been pending for two weeks. The

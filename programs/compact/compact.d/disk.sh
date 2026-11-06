@@ -22,16 +22,26 @@ report_freed() {
   info "Freed $(human "$freed"), $(df -h --output=avail / | tail -n 1 | tr -d ' ') now available."
 }
 
-# Trimmed blocks only go back to Windows when the virtual disk is sparse, and
-# that can only be seen and set from the Windows side.
+# Trimmed blocks only go back to Windows when the virtual disk is sparse.
+# Only Windows can see that, so compact-vhd asks it, and the how-to is only
+# printed when the answer is no, or when there was no answer.
 vhd_hint() {
   [ -n "$IS_WSL" ] || return 0
-  cat <<HINT
-
-   Windows gets this space back only if the virtual disk is sparse. If you
-   have not done it yet, once, from a Windows terminal:
-     wsl --shutdown
-     wsl --manage ${WSL_DISTRO_NAME:-NixOS} --set-sparse true
-
-HINT
+  local distro=${WSL_DISTRO_NAME:-NixOS}
+  case "$(compact-vhd)" in
+    sparse)
+      info "The virtual disk is sparse, so Windows gets the space back."
+      echo
+      return
+      ;;
+    not-sparse)
+      warn "The virtual disk is not sparse, so Windows keeps its full size."
+      ;;
+    *)
+      warn "Could not ask Windows whether the virtual disk is sparse."
+      ;;
+  esac
+  say "$(highlight "Make it sparse once, from Windows: \`wsl --shutdown\`, then")"
+  say "$(highlight "\`wsl --manage $distro --set-sparse true\`")"
+  echo
 }

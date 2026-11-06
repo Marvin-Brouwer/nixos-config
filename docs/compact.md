@@ -42,8 +42,15 @@ wsl --shutdown
 wsl --manage NixOS --set-sparse true
 ```
 
-Use the distro name from `wsl -l`. The command prints the hint every run in
-WSL, because whether the disk is sparse can't be seen from inside it.
+Use the distro name from `wsl -l`. You don't have to remember whether you did
+this: nothing inside the distro can see the flag, so `rig compact` asks Windows
+(PowerShell through interop reads the distro's `.vhdx` location from the `Lxss`
+registry key and checks the file's sparse attribute, no admin needed). It only
+prints the commands above when the answer is no, or when it got no answer.
+`rig doctor` asks the same question and warns when the disk isn't sparse.
+
+The timer doesn't ask: a systemd unit has no WSL session, so it doesn't know
+which distro it is in.
 
 ## The notice
 
@@ -55,7 +62,7 @@ This machine could use a clean-up:
  - 7.2GiB of unused store paths
  - 12 system generations older than 14 days
 
- run rig compact to reclaim it
+ run `rig compact --yes` to reclaim it
 ```
 
 It shows when either of these is true:
@@ -63,7 +70,8 @@ It shows when either of these is true:
 - 5 GiB or more of store paths nothing uses
 - 10 or more system generations older than 14 days
 
-It stays quiet while sysupdate has something to say. That gives you one nag
+It only shows when there is no sysupdate to run: while sysupdate's notice has
+a pending or staged update to show, this one stays quiet. That gives you one nag
 per shell, and the update comes first, since applying it adds another
 generation to clean up anyway.
 

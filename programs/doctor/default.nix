@@ -12,7 +12,7 @@
 # See docs/doctor.md.
 # -----------------------------------------------------------------
 
-{ pkgs, lib, isWsl, prefix, sysupdateStateDir, compactStateDir }:
+{ pkgs, lib, isWsl, prefix, sysupdateStateDir, compact }:
 
 let
   script = import ../../lib/shell-script.nix { inherit pkgs lib; };
@@ -23,11 +23,15 @@ script.application {
   # mise, gpg, docker and the Windows binaries are what is being checked, so
   # they are looked up on your PATH rather than provided here.
   runtimeInputs = with pkgs; [ coreutils gawk gnugrep systemd curl git util-linux ];
-  inline.PARTS = ./doctor.d;
+  inline = {
+    PARTS = ./doctor.d;
+    HIGHLIGHT = ../../lib/highlight.sh;
+  };
   vars = {
     PREFIX = prefix;
     IS_WSL = if isWsl then "1" else "";
     SYSUPDATE_STATE_DIR = sysupdateStateDir;
-    COMPACT_STATE_DIR = compactStateDir;
+    COMPACT_STATE_DIR = compact.stateDir;
+    VHD_CHECK = "${compact.vhd}/bin/compact-vhd";
   };
 }

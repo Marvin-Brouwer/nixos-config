@@ -8,7 +8,7 @@ check_repo() {
   root=$(git rev-parse --show-toplevel)
 
   if [ ! -f "$root/mise.toml" ] && [ ! -f "$root/.mise.toml" ]; then
-    warn "not set up" "$PREFIX repoconfig <preset> <email>"
+    warn "not set up" "\`$PREFIX repoconfig <preset> <email>\`"
     return
   fi
 
@@ -22,12 +22,12 @@ check_repo() {
   if [ -n "$(git -C "$root" config --local user.email)" ]; then
     ok "git identity is set for this repo"
   else
-    warn "no local git identity" "$PREFIX repoconfig <preset> <email>"
+    warn "no local git identity" "\`$PREFIX repoconfig <preset> <email>\`"
   fi
 
   command -v mise >/dev/null || return 0
   if (cd "$root" && mise trust --show 2>/dev/null) | grep -q ': untrusted'; then
-    fail "mise.toml is not trusted, so mise ignores it" "mise trust, after reading it"
+    fail "mise.toml is not trusted, so mise ignores it" "\`mise trust\`, after reading it"
     return
   fi
   ok "mise.toml is trusted"
@@ -35,12 +35,12 @@ check_repo() {
   if [ -f "$root/mise.lock" ]; then
     ok "mise.lock is there"
   else
-    warn "no mise.lock, so nothing is pinned" "touch mise.lock && mise install && mise lock"
+    warn "no mise.lock, so nothing is pinned" "\`touch mise.lock && mise install && mise lock\`"
   fi
 
   if [ -z "$(cd "$root" && mise ls --current --missing 2>/dev/null)" ]; then
     ok "every tool is installed"
   else
-    warn "some tools are not installed" "mise install"
+    warn "some tools are not installed" "\`mise install\`"
   fi
 }

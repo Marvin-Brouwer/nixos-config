@@ -15,6 +15,10 @@ set -uo pipefail
 : "${STATE_DIR:?}" "${HOST_NAME:?}" "${PREFIX:?}" "${WATCH:?}"
 : "${MIN_INTERVAL:?}" "${RETRY_INTERVAL:?}" "${REBOOT_HINT:?}" "${DIFF_PY:?}"
 
+# Defines highlight.
+# shellcheck source=../../lib/highlight.sh
+. "$HIGHLIGHT"
+
 # Defines info, warn, die, repo_root, candidate_lock and input_revs.
 # shellcheck source=helpers.sh
 . "$HELPERS"

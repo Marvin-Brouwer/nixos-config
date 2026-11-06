@@ -94,7 +94,10 @@ let
       PRESET_NAMES = lib.concatStringsSep " " presets;
       SANDBOX_CHECK = sandbox.check;
     };
-    inline.PARTS = ./repoconfig.d;
+    inline = {
+      PARTS = ./repoconfig.d;
+      HIGHLIGHT = ../../lib/highlight.sh;
+    };
   };
 
   # Runs before every prompt, so the common case has to cost nothing: an

@@ -8,18 +8,23 @@
 
 set -uo pipefail
 
-: "${PREFIX:?}" "${SYSUPDATE_STATE_DIR:?}" "${COMPACT_STATE_DIR:?}"
+: "${PREFIX:?}" "${SYSUPDATE_STATE_DIR:?}" "${COMPACT_STATE_DIR:?}" "${VHD_CHECK:?}"
 # 1 in WSL, empty elsewhere. Decides whether the WSL checks run.
 : "${IS_WSL?}"
+
+# Defines highlight.
+# shellcheck source=../../lib/highlight.sh
+. "$HIGHLIGHT"
 
 FAILED=0
 WARNED=0
 
 # One line per check, and an indented hint under anything that is not fine.
+# A hint puts the command to run in backticks, which highlight colours.
 ok()   { printf '   \033[1;32mok\033[0m    %s\n' "$1"; }
 warn() { printf '   \033[1;33mwarn\033[0m  %s\n' "$1"; hint "${2:-}"; WARNED=$((WARNED + 1)); }
 fail() { printf '   \033[1;31mFAIL\033[0m  %s\n' "$1"; hint "${2:-}"; FAILED=$((FAILED + 1)); }
-hint() { [ -z "$1" ] || printf '         %s\n' "$1"; }
+hint() { [ -z "$1" ] || printf '         %s\n' "$(highlight "$1")"; }
 section() { printf '\n\033[1;34m== %s\033[0m\n' "$1"; }
 
 usage() {
@@ -69,6 +74,7 @@ main() {
     section "WSL"
     check_windows_drive
     check_interop
+    check_sparse_disk
   fi
 
   section "Tools"

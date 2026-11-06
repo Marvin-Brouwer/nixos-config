@@ -7,7 +7,9 @@ rig doctor
 ```
 
 It checks each piece this setup depends on and prints `ok`, `warn` or `FAIL`,
-with the command that fixes or explains anything that isn't ok. It changes
+with the command that fixes or explains anything that isn't ok. Commands in
+hints are in backticks and coloured, like every other message in this setup
+that tells you to run something. It changes
 nothing and starts nothing, so it's always safe to run. It exits 1 when
 something failed.
 
@@ -16,7 +18,7 @@ something failed.
    ok    nix-ld is active
    ok    git-lfs filters are registered
    FAIL  mise.toml is not trusted, so mise ignores it
-         mise trust, after reading it
+         `mise trust`, after reading it
 ```
 
 The failures this machine has are rarely loud. Without nix-ld, node fails to
@@ -42,6 +44,8 @@ waiting for a symptom.
 - Windows binaries are on PATH and actually run. Without interop, `code .` and
   the Windows half of `vscode-sync` fail with errors that don't mention it.
 - `code` is reachable
+- the virtual disk is sparse, so space `rig compact` frees goes back to Windows
+  (see [compact](compact.md))
 
 **Tools**
 

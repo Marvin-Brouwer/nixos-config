@@ -13,7 +13,8 @@ report_missing() { # label  installed-list
   for ext in $DESIRED_EXTS; do
     if ! echo "$installed" | grep -qx "$ext"; then
       echo "[vscode] [$label] NOT INSTALLED: $ext"
-      echo "[vscode] [$label]   try: code --install-extension $ext --force"
+      # Backticks only, no colour: in --detach mode this lands in a log file.
+      echo "[vscode] [$label]   try: \`code --install-extension $ext --force\`"
       FAIL=1
     fi
   done

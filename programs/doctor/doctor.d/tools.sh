@@ -30,7 +30,7 @@ check_mise() {
   if mise doctor >/dev/null 2>&1; then
     ok "mise doctor is happy"
   else
-    warn "mise doctor reports problems" "mise doctor"
+    warn "mise doctor reports problems" "\`mise doctor\`"
   fi
 }
 
@@ -48,19 +48,19 @@ check_gpg() {
 # daemon anything would start it, and this changes nothing.
 check_docker() {
   if ! systemctl is-active --quiet docker.socket 2>/dev/null; then
-    fail "the Docker socket is not listening" "systemctl status docker.socket"
+    fail "the Docker socket is not listening" "\`systemctl status docker.socket\`"
   elif ! systemctl is-active --quiet docker.service 2>/dev/null; then
     ok "Docker socket listening, the daemon starts on first use"
   elif timeout 10 docker info >/dev/null 2>&1; then
     ok "Docker daemon answers"
   else
-    fail "Docker daemon is running but does not answer" "journalctl -u docker -b"
+    fail "Docker daemon is running but does not answer" "\`journalctl -u docker -b\`"
   fi
 
   if id -nG | grep -qw docker; then
     ok "you are in the docker group"
   else
-    warn "you are not in the docker group yet" "log in again: wsl --shutdown from Windows"
+    warn "you are not in the docker group yet" "log in again: \`wsl --shutdown\` from Windows"
   fi
 }
 

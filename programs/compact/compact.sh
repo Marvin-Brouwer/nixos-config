@@ -13,6 +13,10 @@ set -uo pipefail
 # 1 in WSL, empty elsewhere. Only the trim and the disk hint depend on it.
 : "${IS_WSL?}"
 
+# Defines highlight.
+# shellcheck source=../../lib/highlight.sh
+. "$HIGHLIGHT"
+
 # Defines info, warn, die, dead_bytes, old_generations and human.
 # shellcheck source=helpers.sh
 . "$HELPERS"

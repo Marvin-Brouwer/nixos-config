@@ -127,7 +127,7 @@ let
   doctor = import ./programs/doctor {
     inherit pkgs lib isWsl sysupdateStateDir;
     prefix = devPrefix;
-    compactStateDir = compact.stateDir;
+    inherit compact;
   };
   scratch = import ./programs/scratch {
     inherit pkgs lib repoconfig;

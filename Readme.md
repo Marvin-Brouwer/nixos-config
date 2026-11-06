@@ -130,8 +130,8 @@ You do not have to remember the name. Entering a git repo that has no
 `mise.toml` prints it:
 
 ```txt
-This repo is not set up yet, run: rig repoconfig <dotnet|empty|ts> <email>
-   (rig --help lists every command on this machine)
+This repo is not set up yet, run: `rig repoconfig <dotnet|empty|ts> <email>`
+   (`rig --help` lists every command on this machine)
 ```
 
 For a repo you deliberately leave alone, `git config --local repoconfig.skip true`
@@ -164,7 +164,7 @@ You have pending system updates!
    ...
  + 143 other packages in the system closure
 
- run rig sysupdate to update
+ run `rig sysupdate` to update
 ```
 
 ```bash

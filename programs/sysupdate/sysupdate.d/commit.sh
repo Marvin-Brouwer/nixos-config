@@ -41,6 +41,6 @@ push_lock() {
   if git push -q; then
     info "Pushed."
   else
-    warn "could not push to $upstream, the commit is still local. Push it by hand."
+    warn "could not push to $upstream, the commit is still local. Push it by hand with \`git push\`."
   fi
 }

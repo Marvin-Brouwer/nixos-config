@@ -15,7 +15,15 @@ set -uo pipefail
 : "${STATE_DIR:?}" "${HOST_NAME:?}" "${PREFIX:?}" "${WATCH:?}"
 : "${MIN_INTERVAL:?}" "${RETRY_INTERVAL:?}" "${REBOOT_HINT:?}" "${DIFF_PY:?}"
 
-# Defines info, warn, die, repo_root, candidate_lock and input_revs.
+# Defines highlight.
+# shellcheck source=../../lib/highlight.sh
+. "$HIGHLIGHT"
+
+# Defines repo_root.
+# shellcheck source=../../lib/config-repo.sh
+. "$CONFIG_REPO"
+
+# Defines info, warn, die, candidate_lock and input_revs.
 # shellcheck source=helpers.sh
 . "$HELPERS"
 
@@ -102,7 +110,7 @@ render_notice() {
     --inputs "$TMP/inputs.json" \
     --state-dir "$STATE_DIR" \
     --reboot-hint "$REBOOT_HINT" \
-    --command "$PREFIX sysupdate" || fail "could not render the notice"
+    --command "$PREFIX sys update" || fail "could not render the notice"
 }
 
 main() {

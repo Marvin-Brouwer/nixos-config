@@ -40,13 +40,16 @@ let
   # Root-owned, world-readable: the check writes it, every shell reads it.
   stateDir = "/var/lib/sysupdate";
 
-  # Reads as "<hint> to activate it." Deliberately backtick-free: this ends up
-  # inside a double-quoted shell string, where a backtick is a command
-  # substitution and `wsl` is not a command that exists in here.
+  # Reads as "<hint> to activate it." The backticks are literal: the value is
+  # assigned single-quoted and only ever expanded, never parsed again, and they
+  # are what marks the command for highlighting. That single-quoted backtick is
+  # also exactly what shellcheck's SC2016 flags, hence noBacktickWarning below.
   rebootHint =
     if isWsl
-    then "Run 'wsl --shutdown' from Windows and start it again"
+    then "Run `wsl --shutdown` from Windows and start it again"
     else "Reboot";
+
+  noBacktickWarning = [ "SC2016" ];
 
   python = pkgs.python3;
   diff = ./diff.py;
@@ -63,8 +66,13 @@ let
   check = script.application {
     name = "sysupdate-check";
     file = ./check.sh;
+    excludeShellChecks = noBacktickWarning;
     runtimeInputs = with pkgs; [ coreutils git nix jq gnugrep python ];
-    inline.HELPERS = ./helpers.sh;
+    inline = {
+      HELPERS = ./helpers.sh;
+      HIGHLIGHT = ../../lib/highlight.sh;
+      CONFIG_REPO = ../../lib/config-repo.sh;
+    };
     vars = shared // {
       # Names the notice is allowed to spell out, from the same list that builds
       # environment.systemPackages, so the two cannot drift apart.
@@ -89,11 +97,14 @@ let
   sysupdate = script.application {
     name = "sysupdate";
     file = ./sysupdate.sh;
+    excludeShellChecks = noBacktickWarning;
     runtimeInputs = with pkgs; [
       coreutils git nix jq gnused nvd vulnix nixos-rebuild python notice
     ];
     inline = {
       HELPERS = ./helpers.sh;
+      HIGHLIGHT = ../../lib/highlight.sh;
+      CONFIG_REPO = ../../lib/config-repo.sh;
       PARTS = ./sysupdate.d;
     };
     vars = shared // {
@@ -103,5 +114,5 @@ let
 
 in
 {
-  inherit sysupdate check notice;
+  inherit sysupdate check notice stateDir;
 }

@@ -1,4 +1,4 @@
-# `rig repoconfig ts`: node, pnpm and typescript.
+# `rig repo init ts`: node, pnpm and typescript.
 {
   description = "node lts, pnpm, typescript; TS plugins; setup task runs pnpm install";
 

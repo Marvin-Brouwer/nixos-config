@@ -14,14 +14,22 @@ set -uo pipefail
 # 1 in WSL, empty elsewhere. Only the kernel check depends on it.
 : "${IS_WSL?}"
 
-# Defines info, warn, die, repo_root, candidate_lock and input_revs.
+# Defines highlight.
+# shellcheck source=../../lib/highlight.sh
+. "$HIGHLIGHT"
+
+# Defines repo_root.
+# shellcheck source=../../lib/config-repo.sh
+. "$CONFIG_REPO"
+
+# Defines info, warn, die, candidate_lock and input_revs.
 # shellcheck source=helpers.sh
 . "$HELPERS"
 
 say()   { printf '   %s\n' "$*"; }
 usage() {
   cat <<USAGE
-usage: $PREFIX sysupdate [option]
+usage: $PREFIX sys update [option]
 
   (no option)  update the inputs, build, show the diff, apply or stage
   --status     reprint the cached notice
@@ -49,7 +57,7 @@ run_option() {
       info "Checking (this evaluates the whole configuration, give it a few minutes)..."
       rm -f "$STATE_DIR/last-attempt"
       sudo systemctl start sysupdate-check.service \
-        || die "the check failed, see: journalctl -u sysupdate-check"
+        || die "the check failed, see: \`journalctl -u sysupdate-check\`"
       echo
       sysupdate-notice --force || true
       exit 0

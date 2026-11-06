@@ -72,7 +72,7 @@ let
 
   # Plain text, shared by the command and the prompt hook below so the two
   # cannot drift apart.
-  usage = "usage: ${prefix} repoconfig <${lib.concatStringsSep "|" presets}> <email> [--sandbox]";
+  usage = "usage: ${prefix} repo init <${lib.concatStringsSep "|" presets}> <email> [--sandbox]";
 
   # lib.fixedWidthString pads on the left, which right-aligns the names.
   list = pkgs.writeText "repoconfig-list.txt" ("Presets:\n\n"
@@ -94,7 +94,10 @@ let
       PRESET_NAMES = lib.concatStringsSep " " presets;
       SANDBOX_CHECK = sandbox.check;
     };
-    inline.PARTS = ./repoconfig.d;
+    inline = {
+      PARTS = ./repoconfig.d;
+      HIGHLIGHT = ../../lib/highlight.sh;
+    };
   };
 
   # Runs before every prompt, so the common case has to cost nothing: an

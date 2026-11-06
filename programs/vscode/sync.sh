@@ -36,7 +36,7 @@ mkdir -p "$MARKER_DIR"
 
 print_help() {
   cat <<HELP
-usage: $PREFIX vscode-sync [--wait|--detach]
+usage: $PREFIX tool vscode-sync [--wait|--detach]
 
 Makes the installed VSCode plugins (Windows and WSL side) equal the base list
 in programs/vscode-plugins.nix plus this repo's .vscode/extensions.json.

@@ -5,7 +5,7 @@ take-home assignment, anything with a dependency tree you have not looked at.
 
 ```bash
 cd ~/repos/some-project
-rig repoconfig ts me@example.com --sandbox
+rig repo init ts me@example.com --sandbox
 ```
 
 Then open the folder in VS Code and run **Dev Containers: Reopen in Container**.

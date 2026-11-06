@@ -38,7 +38,7 @@ let
   ];
 
   # The one command this repo puts on PATH. Everything below is reached through
-  # it (`rig sysupdate`, `rig repoconfig ...`), so there is a single name to
+  # it (`rig sys update`, `rig repo init ...`), so there is a single name to
   # remember and `rig --help` to fall back on. Renaming it is this one string.
   devPrefix = "rig";
 
@@ -55,41 +55,95 @@ let
     inherit pkgs lib;
     prefix = devPrefix;
     commands = {
-      repoconfig = {
-        package = repoconfig.repoconfig;
-        summary = "set up the git repo you are in, once after cloning";
-        usage = "repoconfig <preset> <email>, --list for presets";
-        complete = [ "--list" ] ++ repoconfig.presets;
+      sys = {
+        summary = "the machine itself: updates, disk space, health";
+        commands = {
+          update = {
+            package = sysupdate.sysupdate;
+            summary = "see pending system updates and apply or stage them";
+            usage = "[--status|--check|--audit]";
+            complete = [ "--status" "--check" "--audit" ];
+          };
+          compact = {
+            package = compact.compact;
+            summary = "free disk space: old generations, Docker, unused mise tools";
+            usage = "[--yes|--status|--check]";
+            complete = [ "--yes" "--status" "--check" ];
+          };
+          doctor = {
+            package = doctor;
+            summary = "check every piece this setup leans on, when something is off";
+            usage = "";
+          };
+        };
       };
-      sysupdate = {
-        package = sysupdate.sysupdate;
-        summary = "see pending system updates and apply or stage them";
-        usage = "sysupdate [--status|--check|--audit]";
-        complete = [ "--status" "--check" "--audit" ];
+      repo = {
+        summary = "the git repo you are in, or a throwaway one";
+        commands = {
+          init = {
+            package = repoconfig.repoconfig;
+            summary = "set up the git repo you are in, once after cloning";
+            usage = "<preset> <email>, --list for presets";
+            complete = [ "--list" ] ++ repoconfig.presets;
+          };
+          scratch = {
+            package = scratch;
+            summary = "a throwaway repo with a preset, and a shell in it";
+            usage = "[preset] [--keep]";
+            complete = [ "--keep" ] ++ repoconfig.presets;
+          };
+        };
       };
-      vscode-sync = {
-        package = vscode;
-        summary = "sync VSCode plugins for this repo (runs on entering one)";
-        usage = "vscode-sync [--wait|--detach]";
-        complete = [ "--wait" "--detach" ];
+      config = {
+        summary = "this nixos-config repo: try a branch, or go back to main";
+        commands = {
+          build = {
+            package = configCommand.build;
+            summary = "build the checked-out branch of this config and switch to it";
+            usage = "";
+          };
+          update = {
+            package = configCommand.update;
+            summary = "back to main: pull it, and build when that changed anything";
+            usage = "";
+          };
+        };
       };
-      playwright = {
-        package = playwright;
-        bin = "playwright-fhs";
-        summary = "FHS sandbox for browsers nix-ld does not cover";
-        usage = "playwright [-c 'command']";
-        # The sandbox runs bash, so --help would be bash's.
-        help = ''
-          usage: ${devPrefix} playwright [-c 'command']
+      tool = {
+        summary = "helpers for the tools projects use";
+        commands = {
+          vscode-sync = {
+            package = vscode;
+            summary = "sync VSCode plugins for this repo (runs on entering one)";
+            usage = "[--wait|--detach]";
+            complete = [ "--wait" "--detach" ];
+          };
+          docker = {
+            package = dockerDaemon;
+            summary = "start, stop or restart the Docker daemon, or see if it runs";
+            usage = "<start|stop|restart|status>";
+            complete = [ "start" "stop" "restart" "status" ];
+          };
+          playwright = {
+            package = playwright;
+            bin = "playwright-fhs";
+            summary = "FHS sandbox for browsers nix-ld does not cover";
+            usage = "[-c 'command']";
+            # The sandbox runs bash, so --help would be bash's.
+            help = ''
+              usage: ${devPrefix} tool playwright [-c 'command']
 
-          Opens a bash shell in an FHS sandbox with the browser libraries, mise,
-          node and pnpm, for when nix-ld is not enough for a browser. Arguments
-          go to that bash, so -c 'pnpm exec playwright test' runs one command
-          and exits.
-        '';
+              Opens a bash shell in an FHS sandbox with the browser libraries, mise,
+              node and pnpm, for when nix-ld is not enough for a browser. Arguments
+              go to that bash, so -c 'pnpm exec playwright test' runs one command
+              and exits.
+            '';
+          };
+        };
       };
     };
   };
+  dockerDaemon = import ./programs/docker { inherit pkgs lib; prefix = devPrefix; };
   playwright = import ./tools/playwright.nix { inherit pkgs lib; };
   sysupdate = import ./programs/sysupdate {
     inherit pkgs lib hostName isWsl;
@@ -100,6 +154,35 @@ let
     # Docker is installed by virtualisation.docker below, for the same reason.
     watch = systemTools ++ [ pkgs.git config.virtualisation.docker.package ];
   };
+  # Both read sysupdate's state directory: the clean-up notice stays quiet while
+  # an update is pending, and doctor checks the update timer still runs.
+  sysupdateStateDir = sysupdate.stateDir;
+  compact = import ./programs/compact {
+    inherit pkgs lib isWsl sysupdateStateDir;
+    prefix = devPrefix;
+  };
+  doctor = import ./programs/doctor {
+    inherit pkgs lib isWsl sysupdateStateDir;
+    prefix = devPrefix;
+    inherit compact;
+  };
+  # `config` would shadow the module argument of the same name.
+  configCommand = import ./programs/config {
+    inherit pkgs lib hostName sysupdateStateDir;
+    prefix = devPrefix;
+  };
+  scratch = import ./programs/scratch {
+    inherit pkgs lib repoconfig;
+    prefix = devPrefix;
+  };
+  # What Claude Code knows about this machine, from the same list as rig --help.
+  claudeSkill = import ./programs/claude-skill {
+    inherit pkgs lib;
+    inherit (rig) leaves;
+    prefix = devPrefix;
+    docs = ./docs;
+  };
+  mainHome = config.users.users.${mainUser}.home;
 in
 {
   # Configure network identity
@@ -195,6 +278,10 @@ in
     # which is the point -- this box lives in WSL and is easy to forget.
     ${sysupdate.notice}/bin/sysupdate-notice
 
+    # The same for disk space, but only when sysupdate printed nothing: one
+    # nag per shell, and the update comes first. See programs/compact.
+    ${compact.notice}/bin/compact-notice
+
     # Names `repoconfig` when you cd into a repo it has not been run in. See
     # programs/repoconfig.
     ${repoconfig.shellInit}
@@ -251,6 +338,48 @@ in
       OnBootSec = "2min";
       OnUnitActiveSec = "12h";
       Unit = "sysupdate-check.service";
+    };
+  };
+
+  # The Claude Code skill, as a user skill: ~/.claude/skills/<prefix> is a
+  # symlink into the store, so it follows every rebuild. tmpfiles rather than a
+  # home-manager file, since nothing else here needs home-manager. L+ replaces
+  # whatever is at that one path; the rest of ~/.claude is left alone.
+  systemd.tmpfiles.rules = [
+    "d ${mainHome}/.claude 0700 ${mainUser} users -"
+    "d ${mainHome}/.claude/skills 0755 ${mainUser} users -"
+    "L+ ${mainHome}/.claude/skills/${devPrefix} - - - - ${claudeSkill}"
+  ];
+
+  # Whether `compact` is worth running, measured the same way: a timer writes
+  # the answer, the shell only prints it. Measuring walks the Nix store, which
+  # is fine at idle priority and not fine in front of a prompt.
+  systemd.services.compact-check = {
+    description = "Check whether a clean-up is worth running";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${compact.check}/bin/compact-check";
+      # The main user, so `compact` can clear the notice after a run without
+      # sudo. Listing dead store paths goes through the daemon, which needs no
+      # root either.
+      User = mainUser;
+      StateDirectory = "compact";
+      StateDirectoryMode = "0755";
+      Nice = 19;
+      IOSchedulingClass = "idle";
+      CPUSchedulingPolicy = "idle";
+    };
+  };
+
+  systemd.timers.compact-check = {
+    description = "Check whether a clean-up is worth running";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      # After the update check has had its turn at boot. The stamp file in
+      # compact-check is the real once-a-day limit, as with sysupdate.
+      OnBootSec = "10min";
+      OnUnitActiveSec = "24h";
+      Unit = "compact-check.service";
     };
   };
 

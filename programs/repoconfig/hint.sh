@@ -30,7 +30,12 @@ __repoconfig_hint_check() {
   [ -f "$root/mise.toml" ] || [ -f "$root/.mise.toml" ] && return
   [ "$("$__repoconfig_git" -C "$root" config --bool repoconfig.skip 2>/dev/null)" = true ] && return
 
-  printf '\033[1;33mThis repo is not set up yet, run:\033[0m %s\n' "$__repoconfig_command"
-  printf '   (%s --help lists every command on this machine)\n' "$__repoconfig_prefix"
+  # Coloured by hand, the way lib/highlight.sh does it: this runs in your own
+  # shell, which should not grow a highlight function for one banner. The
+  # backticks are literal, which is what SC2016 would warn about.
+  # shellcheck disable=SC2016
+  printf '\033[1;33mThis repo is not set up yet, run:\033[0m \033[1;36m`%s`\033[0m\n' "$__repoconfig_command"
+  # shellcheck disable=SC2016
+  printf '   (\033[1;36m`%s --help`\033[0m lists every command on this machine)\n' "$__repoconfig_prefix"
 }
 PROMPT_COMMAND="__repoconfig_hint${PROMPT_COMMAND:+;$PROMPT_COMMAND}"

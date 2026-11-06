@@ -186,6 +186,16 @@ def build_rows(old: dict[str, str], new: dict[str, str], first_seen: dict[str, s
     return rows
 
 
+COMMAND = re.compile(r"`[^`]+`")
+
+
+def highlight(text: str, color: bool) -> str:
+    """Colours each `backticked` command, the same as lib/highlight.sh."""
+    if not color:
+        return text
+    return COMMAND.sub(lambda match: f"\033[1;36m{match.group(0)}\033[0m", text)
+
+
 def render(rows: list[dict], watch: list[str], inputs: dict, command: str, color: bool) -> str:
     """The notice itself. Watched packages first, stalest first, then a count."""
     watched = [row for row in rows if row["name"] in watch]
@@ -222,7 +232,7 @@ def render(rows: list[dict], watch: list[str], inputs: dict, command: str, color
             continue
         lines.append(f" + {name} module: {revs['old'][:7]} -> {revs['new'][:7]}")
 
-    lines += ["", f" run {command} to update", ""]
+    lines += ["", highlight(f" run `{command}` to update", color), ""]
     return "\n".join(lines)
 
 
@@ -231,7 +241,7 @@ def render_staged(path: str, reboot_hint: str, color: bool) -> str:
     match = STORE_PATH.match(path)
     return "\n".join([
         f"\033[1;33m{header}\033[0m" if color else header,
-        f" {reboot_hint} to activate it.",
+        highlight(f" {reboot_hint} to activate it.", color),
         f" ({match.group('name') if match else path})",
         "",
     ])
@@ -263,7 +273,7 @@ def main() -> int:
     parser.add_argument("--state-dir", required=True)
     parser.add_argument("--current-system", default="/run/current-system")
     parser.add_argument("--reboot-hint", default="Reboot")
-    parser.add_argument("--command", default="rig sysupdate", help="what the notice tells you to run")
+    parser.add_argument("--command", default="rig sys update", help="what the notice tells you to run")
     parser.add_argument("--now", help="ISO timestamp, for testing")
     args = parser.parse_args()
 

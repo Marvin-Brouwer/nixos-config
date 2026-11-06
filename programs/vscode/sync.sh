@@ -1,21 +1,28 @@
 # shellcheck shell=bash
-# `vscode-sync`. Not run as is: default.nix fills in the @-delimited
-# placeholders. What it syncs, and why it works the way it does, is in
+# `vscode-sync`. What it syncs, and why it works the way it does, is in
 # default.nix.
+#
+# Built by default.nix with writeShellApplication: the tools it calls come from
+# runtimeInputs on PATH, and the variables checked below are set by Nix ahead
+# of this script.
+
+: "${PREFIX:?}" "${EXTENSIONS_JSON_PY:?}"
+# programs/vscode-plugins.nix, lowercased, one per line.
+: "${BASE_EXTS?}"
 
 repo_root() {
-  @git@/bin/git rev-parse --show-toplevel 2>/dev/null || pwd
+  git rev-parse --show-toplevel 2>/dev/null || pwd
 }
 
 MARKER_DIR="${HOME}/.config/nixos-vscode-sync"
 LOCK_FILE="${MARKER_DIR}/sync.lock"
 LOG_FILE="${MARKER_DIR}/last.log"
-@coreutils@/bin/mkdir -p "$MARKER_DIR"
+mkdir -p "$MARKER_DIR"
 
 case "${1:-}" in
   -h|--help)
-    @coreutils@/bin/cat <<'HELP'
-usage: @prefix@ vscode-sync [--wait|--detach]
+    cat <<HELP
+usage: $PREFIX vscode-sync [--wait|--detach]
 
 Makes the installed VSCode plugins (Windows and WSL side) equal the base list
 in programs/vscode-plugins.nix plus this repo's .vscode/extensions.json.
@@ -41,10 +48,10 @@ fi
 # so there is something to run before opening VSCode rather than guessing
 # from scrollback.
 if [ "${1:-}" = "--wait" ]; then
-  if ! @utilLinux@/bin/flock -n "$LOCK_FILE" true; then
+  if ! flock -n "$LOCK_FILE" true; then
     echo "[vscode] Waiting for the running sync to finish..."
   fi
-  @utilLinux@/bin/flock "$LOCK_FILE" true
+  flock "$LOCK_FILE" true
   echo "[vscode] Sync idle."
   [ -s "$LOG_FILE" ] && echo "[vscode] Last detached run: $LOG_FILE"
   exit 0
@@ -59,7 +66,7 @@ fi
 # project had installed.
 #
 # A mise.toml is what marks a repo as managed here; `repoconfig` writes one.
-if ! @git@/bin/git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 0
 fi
 
@@ -70,11 +77,11 @@ fi
 
 # A sandboxed repo is one I do not trust, so its .vscode/extensions.json does
 # not get to install plugins on the host. Its plugins live in the container.
-if [ "$(@git@/bin/git -C "$REPO_ROOT" config --bool repoconfig.sandbox 2>/dev/null)" = true ]; then
+if [ "$(git -C "$REPO_ROOT" config --bool repoconfig.sandbox 2>/dev/null)" = true ]; then
   exit 0
 fi
 
-REPO_NAME="$(@coreutils@/bin/basename "$REPO_ROOT")"
+REPO_NAME="$(basename "$REPO_ROOT")"
 EXT_FILE="$REPO_ROOT/.vscode/extensions.json"
 
 # One marker, not one per repo. The installed set is global, so a per-repo
@@ -101,18 +108,18 @@ ensure_settings() {
     return 0
   fi
 
-  WIN_APPDATA=$(cd /mnt/c && cmd.exe /c "echo %APPDATA%" 2>/dev/null | @coreutils@/bin/tr -d '\r')
+  WIN_APPDATA=$(cd /mnt/c && cmd.exe /c "echo %APPDATA%" 2>/dev/null | tr -d '\r')
   # C:\Users\... -> /mnt/c/Users/...
-  WSL_APPDATA=$(echo "$WIN_APPDATA" | @gnused@/bin/sed 's|\\|/|g; s|^\([A-Za-z]\):|/mnt/\L\1|')
+  WSL_APPDATA=$(echo "$WIN_APPDATA" | sed 's|\\|/|g; s|^\([A-Za-z]\):|/mnt/\L\1|')
   SETTINGS_FILE="$WSL_APPDATA/Code/User/settings.json"
 
   if [ ! -f "$SETTINGS_FILE" ]; then
-    @coreutils@/bin/mkdir -p "$(@coreutils@/bin/dirname "$SETTINGS_FILE")"
+    mkdir -p "$(dirname "$SETTINGS_FILE")"
     echo '{}' > "$SETTINGS_FILE"
   fi
 
   DISTRO="${WSL_DISTRO_NAME:-NixOS}"
-  @jq@/bin/jq \
+  jq \
     --arg name "$DISTRO (WSL)" \
     --arg distro "$DISTRO" \
     '
@@ -129,35 +136,32 @@ ensure_settings() {
       ."dev.containers.githubCLILoginWithToken" = false
     ' \
     "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" \
-    && @coreutils@/bin/mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
+    && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
 
-  @coreutils@/bin/touch "${MARKER_DIR}/settings-configured-v2"
+  touch "${MARKER_DIR}/settings-configured-v2"
   echo "[vscode] Set default terminal to '$DISTRO (WSL)', dev container credential forwarding off."
 }
 
 # Pull one array out of the project's extensions.json, if it has one.
 read_list() {
   [ -f "$EXT_FILE" ] || return 0
-  @python@/bin/python3 @extensionsJson@ "$EXT_FILE" "$1"
+  python3 "$EXTENSIONS_JSON_PY" "$EXT_FILE" "$1"
 }
 
 normalise() {
-  @coreutils@/bin/tr '[:upper:]' '[:lower:]' \
-    | @gnugrep@/bin/grep -v '^[[:space:]]*$' \
-    | @coreutils@/bin/sort -u
+  tr '[:upper:]' '[:lower:]' \
+    | grep -v '^[[:space:]]*$' \
+    | sort -u
 }
-
-# programs/vscode-plugins.nix, lowercased, one per line.
-BASE_EXTS="@baseExts@"
 
 DESIRED_EXTS="$( { printf '%s\n' "$BASE_EXTS"; read_list recommendations; } | normalise )"
 UNWANTED="$( read_list unwantedRecommendations | normalise )"
 
 if [ -n "$UNWANTED" ]; then
-  UNWANTED_FILE="$(@coreutils@/bin/mktemp)"
+  UNWANTED_FILE="$(mktemp)"
   printf '%s\n' "$UNWANTED" > "$UNWANTED_FILE"
-  DESIRED_EXTS="$(printf '%s\n' "$DESIRED_EXTS" | @gnugrep@/bin/grep -vxF -f "$UNWANTED_FILE" || true)"
-  @coreutils@/bin/rm -f "$UNWANTED_FILE"
+  DESIRED_EXTS="$(printf '%s\n' "$DESIRED_EXTS" | grep -vxF -f "$UNWANTED_FILE" || true)"
+  rm -f "$UNWANTED_FILE"
 fi
 
 # The WSL remote extension is machine-specific infrastructure rather than a
@@ -174,12 +178,12 @@ if command -v cmd.exe >/dev/null 2>&1; then
   DESIRED_EXTS="$(printf '%s\nms-vscode-remote.remote-wsl\nms-vscode-remote.remote-containers\n' "$DESIRED_EXTS" | normalise)"
 fi
 
-DESIRED_HASH=$(printf '%s\n' "$DESIRED_EXTS" | @coreutils@/bin/sha256sum | @coreutils@/bin/cut -d' ' -f1)
+DESIRED_HASH=$(printf '%s\n' "$DESIRED_EXTS" | sha256sum | cut -d' ' -f1)
 
 ensure_settings
 
 # Fast path. Runs on every project entry, so it must stay cheap.
-if [ -f "$MARKER_FILE" ] && [ "$(@coreutils@/bin/cat "$MARKER_FILE")" = "$DESIRED_HASH" ]; then
+if [ -f "$MARKER_FILE" ] && [ "$(cat "$MARKER_FILE")" = "$DESIRED_HASH" ]; then
   exit 0
 fi
 
@@ -195,7 +199,7 @@ fi
 # would otherwise interleave install and uninstall calls against the same set
 # and leave whichever finished last as the winner.
 exec 9>"$LOCK_FILE"
-if ! @utilLinux@/bin/flock -n 9; then
+if ! flock -n 9; then
   echo "[vscode] Another sync is already running, leaving it to finish."
   exit 0
 fi
@@ -210,7 +214,7 @@ FAIL=0
 report_missing() { # label  installed-list
   local label="$1" installed="$2"
   for ext in $DESIRED_EXTS; do
-    if ! echo "$installed" | @gnugrep@/bin/grep -qx "$ext"; then
+    if ! echo "$installed" | grep -qx "$ext"; then
       echo "[vscode] [$label] NOT INSTALLED: $ext"
       echo "[vscode] [$label]   try: code --install-extension $ext --force"
       FAIL=1
@@ -222,14 +226,14 @@ report_missing() { # label  installed-list
 # cmd.exe cannot use a UNC path as its working directory, hence the cd.
 if command -v cmd.exe >/dev/null 2>&1; then
   win_code() {
-    (cd /mnt/c && cmd.exe /c code "$@") | @coreutils@/bin/tr -d '\r'
+    (cd /mnt/c && cmd.exe /c code "$@") | tr -d '\r'
   }
 
   echo "[vscode] Syncing Windows extensions for $REPO_NAME..."
-  WIN_INSTALLED=$(win_code --list-extensions 2>/dev/null | @coreutils@/bin/tr '[:upper:]' '[:lower:]')
+  WIN_INSTALLED=$(win_code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
 
   for ext in $DESIRED_EXTS; do
-    if ! echo "$WIN_INSTALLED" | @gnugrep@/bin/grep -qx "$ext"; then
+    if ! echo "$WIN_INSTALLED" | grep -qx "$ext"; then
       echo "[vscode] [win] Installing $ext..."
       if ! win_code --install-extension "$ext" --force >/dev/null 2>&1; then
         echo "[vscode] [win] WARNING: Failed to install $ext"
@@ -239,22 +243,22 @@ if command -v cmd.exe >/dev/null 2>&1; then
   done
 
   for ext in $WIN_INSTALLED; do
-    if ! echo "$DESIRED_EXTS" | @gnugrep@/bin/grep -qx "$ext"; then
+    if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
       echo "[vscode] [win] Removing $ext..."
       win_code --uninstall-extension "$ext" >/dev/null 2>&1
     fi
   done
 
-  report_missing win "$(win_code --list-extensions 2>/dev/null | @coreutils@/bin/tr '[:upper:]' '[:lower:]')"
+  report_missing win "$(win_code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
 fi
 
 # --- WSL side: install into the VS Code remote server ---
 if command -v code >/dev/null 2>&1; then
   echo "[vscode] Syncing WSL extensions for $REPO_NAME..."
-  WSL_INSTALLED=$(code --list-extensions 2>/dev/null | @coreutils@/bin/tr '[:upper:]' '[:lower:]')
+  WSL_INSTALLED=$(code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')
 
   for ext in $DESIRED_EXTS; do
-    if ! echo "$WSL_INSTALLED" | @gnugrep@/bin/grep -qx "$ext"; then
+    if ! echo "$WSL_INSTALLED" | grep -qx "$ext"; then
       echo "[vscode] [wsl] Installing $ext..."
       if ! code --install-extension "$ext" --force >/dev/null 2>&1; then
         echo "[vscode] [wsl] WARNING: Failed to install $ext"
@@ -264,13 +268,13 @@ if command -v code >/dev/null 2>&1; then
   done
 
   for ext in $WSL_INSTALLED; do
-    if ! echo "$DESIRED_EXTS" | @gnugrep@/bin/grep -qx "$ext"; then
+    if ! echo "$DESIRED_EXTS" | grep -qx "$ext"; then
       echo "[vscode] [wsl] Removing $ext..."
       code --uninstall-extension "$ext" >/dev/null 2>&1
     fi
   done
 
-  report_missing wsl "$(code --list-extensions 2>/dev/null | @coreutils@/bin/tr '[:upper:]' '[:lower:]')"
+  report_missing wsl "$(code --list-extensions 2>/dev/null | tr '[:upper:]' '[:lower:]')"
 fi
 
 # Only record the hash if everything landed, so a failure retries next time.

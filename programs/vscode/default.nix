@@ -1,6 +1,7 @@
 # -----------------------------------------------------------------
 # VSCode plugin sync, triggered by the mise `enter` hook in programs/mise.toml.
-# The command itself is sync.sh.
+# The command itself is sync.sh, given its tools and values by
+# lib/shell-script.nix.
 #
 # What it installs is the union of two lists:
 #
@@ -26,17 +27,20 @@
 { pkgs, lib, prefix }:
 
 let
-  script = import ../../lib/script.nix { inherit lib; };
+  script = import ../../lib/shell-script.nix { inherit pkgs lib; };
   basePlugins = import ../vscode-plugins.nix;
 
   # .vscode/extensions.json is JSONC: comments and trailing commas are
   # legal and worth keeping, which rules out jq.
   python = pkgs.python3.withPackages (ps: [ ps.json5 ]);
 in
-pkgs.writeShellScriptBin "vscode-sync" (script ./sync.sh {
-  inherit prefix python;
-  inherit (pkgs) coreutils git gnugrep gnused jq;
-  utilLinux = pkgs.util-linux;
-  extensionsJson = ./extensions-json.py;
-  baseExts = lib.concatStringsSep "\n" (map lib.toLower basePlugins);
-})
+script.application {
+  name = "vscode-sync";
+  file = ./sync.sh;
+  runtimeInputs = with pkgs; [ coreutils git gnugrep gnused jq util-linux python ];
+  vars = {
+    PREFIX = prefix;
+    EXTENSIONS_JSON_PY = ./extensions-json.py;
+    BASE_EXTS = lib.concatStringsSep "\n" (map lib.toLower basePlugins);
+  };
+}

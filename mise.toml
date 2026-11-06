@@ -6,8 +6,9 @@
 
 [tools]
 
-# The scripts under programs/ are shell files with @name@ placeholders, which
-# shellcheck reads as ordinary words. shellcheck comes from this flake's own
+# The scripts under programs/ are plain shell files; see lib/shell-script.nix.
+# The build shellchecks each command too, but this also follows the sourced
+# helpers and covers the prompt hook. shellcheck comes from this flake's own
 # locked nixpkgs, so there is still no tool to install or pin here.
 [tasks.lint]
 description = "shellcheck the scripts under programs/"

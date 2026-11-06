@@ -1,9 +1,6 @@
 # shellcheck shell=bash
-# Shared by sysupdate.sh and check.sh, which source it. default.nix fills in
-# the @-delimited placeholders.
-
-# shellcheck disable=SC2034 # read by the scripts that source this
-STATE_DIR=@stateDir@
+# Shared by sysupdate.sh and check.sh, which source it, so it runs with their
+# PATH and variables.
 
 info() { printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[WARN]\033[0m %s\n' "$*"; }
@@ -14,9 +11,9 @@ die()  { printf '\033[1;31msysupdate:\033[0m %s\n' "$*" >&2; exit 1; }
 # runs as root and the repo lives in someone's home.
 repo_root() {
   local root
-  root=$(@coreutils@/bin/readlink -f /etc/nixos) || return 1
+  root=$(readlink -f /etc/nixos) || return 1
   [ -n "$root" ] || return 1
-  @git@/bin/git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
+  git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
   printf '%s\n' "$root"
 }
 
@@ -27,7 +24,7 @@ repo_root() {
 # the newest nixpkgs while leaving the repo untouched -- only `sysupdate`
 # itself is allowed to write the lock.
 candidate_lock() { # repo  destination
-  @nix@/bin/nix flake update \
+  nix flake update \
     --flake "$1" \
     --reference-lock-file "$1/flake.lock" \
     --output-lock-file "$2"
@@ -37,7 +34,7 @@ candidate_lock() { # repo  destination
 # read through its own root.inputs, because nix renames nodes freely
 # (nixpkgs_2 and friends) and the node key is not stable between locks.
 input_revs() { # old-lock  new-lock
-  @jq@/bin/jq -n --slurpfile old "$1" --slurpfile new "$2" '
+  jq -n --slurpfile old "$1" --slurpfile new "$2" '
     def revs(lock):
       (lock.nodes.root.inputs // {}) as $inputs
       | reduce ($inputs | keys[]) as $name ({};

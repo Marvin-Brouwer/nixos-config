@@ -1,8 +1,14 @@
 # shellcheck shell=bash
-# The `repoconfig` command. Not run as is: default.nix fills in the @-delimited
-# placeholders.
+# The `repoconfig` command.
+#
+# Built by default.nix with writeShellApplication: the tools it calls come from
+# runtimeInputs on PATH, and the variables checked below are set by Nix ahead
+# of this script.
 
 set -uo pipefail
+
+: "${PREFIX:?}" "${USAGE:?}" "${GIT_USER_NAME:?}" "${LIST_FILE:?}"
+: "${PRESETS_DIR:?}" "${PRESET_NAMES:?}" "${SANDBOX_CHECK:?}"
 
 # --sandbox may go anywhere; the rest is positional.
 SANDBOX=
@@ -22,43 +28,65 @@ kept() { printf '   \033[1;33mkept\033[0m    %s (already present)\n' "$*"; }
 die()  { printf '\033[1;31mrepoconfig:\033[0m %s\n' "$*" >&2; exit 1; }
 
 case "$PRESET" in
-  -h|--help) @coreutils@/bin/cat @help@; exit 0 ;;
-  -l|--list) @coreutils@/bin/cat @list@; exit 0 ;;
+  -h|--help)
+    cat <<HELP
+$USAGE
+       $PREFIX repoconfig --list
+       $PREFIX repoconfig --help
+
+Sets up the git repo you are in for this machine:
+
+  1. git identity (user.name, user.email) on the repo
+  2. mise.toml from the preset, then mise trust
+  3. an empty mise.lock, so mise starts pinning versions
+  4. .vscode/extensions.json from the preset
+  5. preset files (dotnet: Directory.Build.props with NuGet lock files)
+  6. mise.local.toml in .git/info/exclude
+  7. mise install, mise lock, vscode-sync
+
+--sandbox also writes .devcontainer/ (locally excluded), for a repo you do
+not trust: open it with "Dev Containers: Reopen in Container".
+
+Nothing that exists is overwritten, so re-running is safe.
+--list shows the presets. Details: ~/nixos-config/docs/repoconfig.md
+HELP
+    exit 0 ;;
+  -l|--list) cat "$LIST_FILE"; exit 0 ;;
 esac
 
 # One directory per preset, built by default.nix: mise.toml, extensions.json,
 # devcontainer.json, and files/ for anything else the preset writes. Looked up
 # by name rather than by path, so an argument like ../ cannot point it anywhere.
-PRESETS=(@presetNames@)
+read -ra PRESETS <<< "$PRESET_NAMES"
 PRESET_DIR=
 for name in "${PRESETS[@]}"; do
-  [ "$name" = "$PRESET" ] && PRESET_DIR="@presets@/$name"
+  [ "$name" = "$PRESET" ] && PRESET_DIR="$PRESETS_DIR/$name"
 done
-[ -n "$PRESET_DIR" ] || die "@usage@ (presets: @prefix@ repoconfig --list)"
+[ -n "$PRESET_DIR" ] || die "$USAGE (presets: $PREFIX repoconfig --list)"
 MISE_SRC="$PRESET_DIR/mise.toml"
 EXT_SRC="$PRESET_DIR/extensions.json"
 DEVCONTAINER_SRC="$PRESET_DIR/devcontainer.json"
 
-[ -n "$EMAIL" ] || die "@usage@"
+[ -n "$EMAIL" ] || die "$USAGE"
 
-@git@/bin/git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
   || die "not inside a git repository"
-REPO_ROOT="$(@git@/bin/git rev-parse --show-toplevel)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT" || die "cannot enter $REPO_ROOT"
 
-printf '\n\033[1;34m== %s (%s)\033[0m\n' "$(@coreutils@/bin/basename "$REPO_ROOT")" "$PRESET"
+printf '\n\033[1;34m== %s (%s)\033[0m\n' "$(basename "$REPO_ROOT")" "$PRESET"
 
 # --- git identity ---
-@git@/bin/git config --local user.name "@gitUserName@"
-@git@/bin/git config --local user.email "$EMAIL"
-say "git identity: @gitUserName@ <$EMAIL>"
+git config --local user.name "$GIT_USER_NAME"
+git config --local user.email "$EMAIL"
+say "git identity: $GIT_USER_NAME <$EMAIL>"
 
 # --- mise.toml ---
 if [ -f mise.toml ] || [ -f .mise.toml ]; then
   kept "mise.toml"
 else
-  @coreutils@/bin/cp "$MISE_SRC" mise.toml
-  @coreutils@/bin/chmod +w mise.toml
+  cp "$MISE_SRC" mise.toml
+  chmod +w mise.toml
   made "mise.toml"
 fi
 
@@ -82,7 +110,7 @@ fi
 if [ -f mise.lock ]; then
   kept "mise.lock"
 else
-  @coreutils@/bin/touch mise.lock
+  touch mise.lock
   made "mise.lock"
 fi
 
@@ -90,8 +118,8 @@ fi
 if [ -f .vscode/extensions.json ]; then
   kept ".vscode/extensions.json"
 else
-  @coreutils@/bin/mkdir -p .vscode
-  @jq@/bin/jq . "$EXT_SRC" > .vscode/extensions.json
+  mkdir -p .vscode
+  jq . "$EXT_SRC" > .vscode/extensions.json
   made ".vscode/extensions.json"
 fi
 
@@ -100,8 +128,8 @@ install_extra() {
   if [ -e "$1" ]; then
     kept "$1"
   else
-    @coreutils@/bin/cp "$2" "$1"
-    @coreutils@/bin/chmod +w "$1"
+    cp "$2" "$1"
+    chmod +w "$1"
     made "$1"
   fi
 }
@@ -109,7 +137,7 @@ install_extra() {
 # Top level only: a preset file goes in the repo root.
 for src in "$PRESET_DIR"/files/*; do
   [ -e "$src" ] || continue
-  install_extra "$(@coreutils@/bin/basename "$src")" "$src"
+  install_extra "$(basename "$src")" "$src"
 done
 
 # --- local ignores ---
@@ -117,8 +145,8 @@ done
 # up in other people's diffs. mise.toml and mise.lock are meant to be
 # committed, so only the local override file is excluded.
 EXCLUDE=".git/info/exclude"
-@coreutils@/bin/mkdir -p "$(@coreutils@/bin/dirname "$EXCLUDE")"
-if @gnugrep@/bin/grep -qxF "mise.local.toml" "$EXCLUDE" 2>/dev/null; then
+mkdir -p "$(dirname "$EXCLUDE")"
+if grep -qxF "mise.local.toml" "$EXCLUDE" 2>/dev/null; then
   kept "$EXCLUDE entry"
 else
   printf '%s\n' "mise.local.toml" >> "$EXCLUDE"
@@ -131,19 +159,19 @@ fi
 if [ -n "$SANDBOX" ]; then
   # Marks the repo for vscode-sync, which then leaves the host's plugins
   # alone here: the repo's own extensions.json is as untrusted as the rest.
-  @git@/bin/git config --local repoconfig.sandbox true
+  git config --local repoconfig.sandbox true
   say "repoconfig.sandbox: vscode-sync skips this repo"
   if [ -f .devcontainer/check-sandbox.sh ]; then
     kept ".devcontainer/ (sandbox)"
   elif [ -e .devcontainer ]; then
     kept ".devcontainer/ (the project's own; check it before trusting it as a sandbox)"
   else
-    @coreutils@/bin/mkdir -p .devcontainer
-    @jq@/bin/jq . "$DEVCONTAINER_SRC" > .devcontainer/devcontainer.json
-    @coreutils@/bin/cp @sandboxCheck@ .devcontainer/check-sandbox.sh
-    @coreutils@/bin/chmod +w .devcontainer/check-sandbox.sh
+    mkdir -p .devcontainer
+    jq . "$DEVCONTAINER_SRC" > .devcontainer/devcontainer.json
+    cp "$SANDBOX_CHECK" .devcontainer/check-sandbox.sh
+    chmod +w .devcontainer/check-sandbox.sh
     made ".devcontainer/ (sandbox)"
-    if @gnugrep@/bin/grep -qxF ".devcontainer/" "$EXCLUDE" 2>/dev/null; then
+    if grep -qxF ".devcontainer/" "$EXCLUDE" 2>/dev/null; then
       kept "$EXCLUDE entry for .devcontainer/"
     else
       printf '%s\n' ".devcontainer/" >> "$EXCLUDE"
@@ -171,6 +199,6 @@ mise lock --platform linux-x64,windows-x64 || say "mise lock reported a problem,
 # inside this script; calling it directly does the same job. The repo has a
 # mise.toml and is trusted by now, so the guard lets it through.
 echo
-@vscodeSync@/bin/vscode-sync
+vscode-sync
 
 printf '\n   Done.\n\n'

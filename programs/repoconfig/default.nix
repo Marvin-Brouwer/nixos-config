@@ -24,12 +24,11 @@
 #   sandbox.nix       --sandbox: devcontainer.json and the attach check
 #   check-sandbox.sh  that attach check
 #   repoconfig.sh     the command
-#   help.txt          its --help
 #   hint.sh           the prompt hook
 #
-# The scripts are plain shell with @name@ placeholders for store paths and the
-# values below; lib/script.nix fills them in. shellcheck them from the repo root
-# with `mise run lint`.
+# The scripts are plain shell, given their tools on PATH and their values as
+# variables by lib/shell-script.nix. `mise run lint` shellchecks them from the
+# repo root; the build does too, for the command.
 #
 # Two outputs, wired up in configuration.nix:
 #
@@ -42,7 +41,7 @@
 { pkgs, lib, prefix, vscodeSync }:
 
 let
-  script = import ../../lib/script.nix { inherit lib; };
+  script = import ../../lib/shell-script.nix { inherit pkgs lib; };
   preset = import ./presets.nix;
   sandbox = import ./sandbox.nix { inherit pkgs; };
 
@@ -84,15 +83,20 @@ let
         in "  ${name}${pad}${preset.descriptions.${name}}\n") presets
     + "\n");
 
-  help = pkgs.writeText "repoconfig-help.txt" (script ./help.txt { inherit usage prefix; });
-
-  repoconfig = pkgs.writeShellScriptBin "repoconfig" (script ./repoconfig.sh {
-    inherit help list usage prefix gitUserName vscodeSync;
-    inherit (pkgs) coreutils git jq gnugrep;
-    presets = presetsDir;
-    presetNames = lib.concatStringsSep " " presets;
-    sandboxCheck = sandbox.check;
-  });
+  repoconfig = script.application {
+    name = "repoconfig";
+    file = ./repoconfig.sh;
+    runtimeInputs = with pkgs; [ coreutils git jq gnugrep ] ++ [ vscodeSync ];
+    vars = {
+      PREFIX = prefix;
+      USAGE = usage;
+      GIT_USER_NAME = gitUserName;
+      LIST_FILE = list;
+      PRESETS_DIR = presetsDir;
+      PRESET_NAMES = lib.concatStringsSep " " presets;
+      SANDBOX_CHECK = sandbox.check;
+    };
+  };
 
   # Runs before every prompt, so the common case has to cost nothing: an
   # unchanged $PWD returns on a string compare, and only a directory change
@@ -110,11 +114,11 @@ let
   #
   # The wrapper hands back the exit status it was called with, so a prompt that
   # shows the last command's status still shows yours rather than this hook's.
-  shellInit = script ./hint.sh {
-    inherit prefix;
-    inherit (pkgs) git;
-    command = lib.removePrefix "usage: " usage;
-  };
+  shellInit = script.assignments {
+    __repoconfig_git = "${pkgs.git}/bin/git";
+    __repoconfig_command = lib.removePrefix "usage: " usage;
+    __repoconfig_prefix = prefix;
+  } + builtins.readFile ./hint.sh;
 in
 {
   inherit repoconfig shellInit presets;

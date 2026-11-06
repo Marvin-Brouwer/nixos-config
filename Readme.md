@@ -24,7 +24,7 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   ├─ configuration.nix            # the NixOS system
 │   ├─ lib/
 │   │   ├─ nix-ld-libs.nix          # libraries that let vendor binaries run
-│   │   └─ script.nix               # fills in the @placeholders@ in the .sh files
+│   │   └─ shell-script.nix         # turns the .sh files into commands
 │   ├─ programs/
 │   │   ├─ rig.nix                  # the `rig` prefix for the commands below
 │   │   ├─ mise.toml                # installed to /etc/mise/config.toml
@@ -33,7 +33,7 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   │   │   ├─ presets.nix          #   the presets, as data
 │   │   │   ├─ presets/             #   their mise.toml bodies and extra files
 │   │   │   ├─ sandbox.nix          #   --sandbox: the dev container
-│   │   │   └─ *.sh, help.txt       #   the command, prompt hook, attach check
+│   │   │   └─ *.sh                 #   the command, prompt hook, attach check
 │   │   ├─ sysupdate/               # update command, check, shell notice
 │   │   │   ├─ default.nix
 │   │   │   ├─ *.sh                 #   one script per command, plus helpers
@@ -54,9 +54,9 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
         └─ .vscode/extensions.json  # this project's plugins
 ```
 
-The shell scripts under `programs/` are real `.sh` files with `@name@`
-placeholders for store paths, filled in by `lib/script.nix`. `mise run lint`
-shellchecks them.
+The shell scripts under `programs/` are real `.sh` files. Nix gives them their
+tools on PATH and their values as variables (`lib/shell-script.nix`), and
+`mise run lint` shellchecks them.
 
 ## Install
 

@@ -22,9 +22,9 @@
 #
 # helpers.sh is what the first two share, diff.py renders the notice.
 #
-# The scripts are plain shell with @name@ placeholders for store paths and
-# the values below; lib/script.nix fills them in. shellcheck them from the
-# repo root with `mise run lint`.
+# The scripts are plain shell, given their tools on PATH and their values as
+# variables by lib/shell-script.nix. `mise run lint` shellchecks them from
+# the repo root; the build does too.
 #
 # Nothing here names a host. `hostName` builds the flake attribute and `isWsl`
 # decides the wording and the kernel check, both from configuration.nix, so a
@@ -34,7 +34,7 @@
 { pkgs, lib, hostName, isWsl, watch, prefix }:
 
 let
-  script = import ../../lib/script.nix { inherit lib; };
+  script = import ../../lib/shell-script.nix { inherit pkgs lib; };
 
   # Root-owned, world-readable: the check writes it, every shell reads it.
   stateDir = "/var/lib/sysupdate";
@@ -50,37 +50,55 @@ let
   python = pkgs.python3;
   diff = ./diff.py;
 
-  helpers = pkgs.writeText "sysupdate-helpers.sh" (script ./helpers.sh {
-    inherit stateDir;
-    inherit (pkgs) coreutils git nix jq;
-  });
+  # What both scripts that source helpers.sh need, for it and for themselves.
+  shared = {
+    STATE_DIR = stateDir;
+    HELPERS = ./helpers.sh;
+    HOST_NAME = hostName;
+    PREFIX = prefix;
+    REBOOT_HINT = rebootHint;
+    DIFF_PY = diff;
+  };
 
-  check = pkgs.writeShellScriptBin "sysupdate-check" (script ./check.sh {
-    inherit helpers python diff hostName rebootHint prefix;
-    inherit (pkgs) coreutils nix gnugrep;
+  check = script.application {
+    name = "sysupdate-check";
+    file = ./check.sh;
+    runtimeInputs = with pkgs; [ coreutils git nix jq gnugrep python ];
+    # helpers.sh is sourced from the store, where the build's shellcheck
+    # cannot follow it. `mise run lint` does.
+    excludeShellChecks = [ "SC1091" ];
+    vars = shared // {
+      # Names the notice is allowed to spell out, from the same list that builds
+      # environment.systemPackages, so the two cannot drift apart.
+      WATCH = lib.concatStringsSep "," (map lib.getName watch);
 
-    # Names the notice is allowed to spell out, from the same list that builds
-    # environment.systemPackages, so the two cannot drift apart.
-    watchNames = lib.concatStringsSep "," (map lib.getName watch);
+      # 12h between checks, whatever the timer does. WSL boots often enough
+      # that without this every terminal would pay for a nixpkgs fetch and a
+      # full eval.
+      MIN_INTERVAL = 12 * 3600;
+      # A failed attempt (no network, usually) should come back sooner.
+      RETRY_INTERVAL = 1 * 3600;
+    };
+  };
 
-    # 12h between checks, whatever the timer does. WSL boots often enough that
-    # without this every terminal would pay for a nixpkgs fetch and a full eval.
-    minInterval = toString (12 * 3600);
-    # A failed attempt (no network, usually) should come back sooner than that.
-    retryInterval = toString (1 * 3600);
-  });
+  notice = script.application {
+    name = "sysupdate-notice";
+    file = ./notice.sh;
+    runtimeInputs = [ pkgs.coreutils ];
+    vars.STATE_DIR = stateDir;
+  };
 
-  notice = pkgs.writeShellScriptBin "sysupdate-notice" (script ./notice.sh {
-    inherit stateDir;
-    inherit (pkgs) coreutils;
-  });
-
-  sysupdate = pkgs.writeShellScriptBin "sysupdate" (script ./sysupdate.sh {
-    inherit helpers notice python diff hostName rebootHint prefix;
-    inherit (pkgs) coreutils git jq nix nvd vulnix gnused;
-    nixosRebuild = pkgs.nixos-rebuild;
-    isWsl = if isWsl then "1" else "";
-  });
+  sysupdate = script.application {
+    name = "sysupdate";
+    file = ./sysupdate.sh;
+    runtimeInputs = with pkgs; [
+      coreutils git nix jq gnused nvd vulnix nixos-rebuild python notice
+    ];
+    excludeShellChecks = [ "SC1091" ];
+    vars = shared // {
+      IS_WSL = if isWsl then "1" else "";
+    };
+  };
 
 in
 {

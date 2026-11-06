@@ -87,13 +87,33 @@ wsl
 Without the sparse flag the `.vhdx` only ever grows: space freed inside WSL,
 by `rig sys compact` for instance, stays allocated on the Windows side. It can
 only be set while WSL is shut down, so `setup.sh` prints it rather than running
-it, with your distro's name filled in. To have every new distro start out sparse,
-put this in `%UserProfile%\.wslconfig` before importing:
+it, with your distro's name filled in.
+
+### `.wslconfig`
+
+WSL itself is configured from Windows, in `%UserProfile%\.wslconfig`. This repo
+doesn't manage that file, but this is the one it's used with. Put it in place
+before importing, because `sparseVhd` only applies to distros created after it's
+set. Run `wsl --shutdown` after changing it.
 
 ```ini
+[wsl2]
+# Default on recent WSL, explicit for clarity
+dnsTunneling=true
+# Example, size to your machine
+memory=16GB
+# Only for VMs inside WSL (KVM, Firecracker); kvm_amd on AMD
+nestedVirtualization=true
+loadKernelModules=kvm_intel
+
 [experimental]
+# New distros start sparse, see rig sys compact
 sparseVhd=true
 ```
+
+Networking is left on the default NAT mode. Windows still reaches WSL on
+`localhost`; mirrored mode is only worth it when WSL has to reach a service
+on Windows' `localhost` or other machines need WSL's ports.
 
 `rig sys doctor` warns if the disk isn't sparse, so you'll hear about it if
 this step was skipped.

@@ -44,7 +44,7 @@ wsl --manage NixOS --set-sparse true
 
 Use the distro name from `wsl -l`. `setup.sh` prints this after installing,
 and `sparseVhd=true` under `[experimental]` in `%UserProfile%\.wslconfig`
-makes new distros sparse from the start; see the Readme's Install section. You don't have to remember whether you did
+makes new distros sparse from the start; see `.wslconfig` in the Readme. You don't have to remember whether you did
 this: nothing inside the distro can see the flag, so `rig sys compact` asks Windows
 (PowerShell through interop reads the distro's `.vhdx` location from the `Lxss`
 registry key and checks the file's sparse attribute, no admin needed). It only

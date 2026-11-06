@@ -12,7 +12,7 @@
 #     mise and npm download for themselves runnable, with no per-project
 #     configuration.
 #
-#   * `playwright-fhs` in tools/playwright.nix -- the fallback sandbox, for
+#   * `playwright-fhs` in programs/tool/playwright/default.nix -- the fallback sandbox, for
 #     whatever nix-ld turns out not to cover.
 #
 # The browser entries are roughly Playwright's own `install-deps` list for

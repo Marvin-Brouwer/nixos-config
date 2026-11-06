@@ -92,7 +92,7 @@ Package source mapping is left out on purpose. It protects against a package
 being served from the wrong feed, which cannot happen with nuget.org as the only
 one. Add it together with the first private feed.
 
-If the repo already has a `Directory.Build.props`, repoconfig keeps it and you
+If the repo already has a `Directory.Build.props`, `rig repo init` keeps it and you
 add the two properties by hand.
 
 ## .vscode/extensions.json

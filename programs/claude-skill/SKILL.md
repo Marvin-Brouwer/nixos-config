@@ -51,5 +51,5 @@ trust them if anything here looks out of date.
 
 - `/etc/nixos/Readme.md`: the overview, start here
 - `/etc/nixos/configuration.nix`: the system, and the `rig` command list
-- `/etc/nixos/programs/<command>/`: each command's source, with a
+- `/etc/nixos/programs/<group>/<command>/`: each command's source, with a
   `default.nix` header saying why it exists

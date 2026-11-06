@@ -1,4 +1,4 @@
-# Config
+# `rig config`
 
 Two commands for working on this repo itself:
 
@@ -59,4 +59,4 @@ by now, and that's exactly where plain `git pull` fails with
    check in the background, since the update it announced has probably just
    arrived.
 
-`main` and `origin` are `BRANCH` and `REMOTE` in `programs/config/default.nix`.
+`main` and `origin` are `BRANCH` and `REMOTE` in `programs/config/update/default.nix`.

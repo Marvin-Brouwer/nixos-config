@@ -42,8 +42,8 @@ let
   # remember and `rig --help` to fall back on. Renaming it is this one string.
   devPrefix = "rig";
 
-  vscode = import ./programs/vscode { inherit pkgs lib; prefix = devPrefix; };
-  repoconfig = import ./programs/repoconfig {
+  vscode = import ./programs/tool/vscode-sync { inherit pkgs lib; prefix = devPrefix; };
+  repoconfig = import ./programs/repo/init {
     inherit pkgs lib;
     prefix = devPrefix;
     vscodeSync = vscode;
@@ -98,12 +98,12 @@ let
         summary = "this nixos-config repo: try a branch, or go back to main";
         commands = {
           build = {
-            package = configCommand.build;
+            package = configBuild;
             summary = "build the checked-out branch of this config and switch to it";
             usage = "";
           };
           update = {
-            package = configCommand.update;
+            package = configUpdate;
             summary = "back to main: pull it, and build when that changed anything";
             usage = "";
           };
@@ -143,9 +143,9 @@ let
       };
     };
   };
-  dockerDaemon = import ./programs/docker { inherit pkgs lib; prefix = devPrefix; };
-  playwright = import ./tools/playwright.nix { inherit pkgs lib; };
-  sysupdate = import ./programs/sysupdate {
+  dockerDaemon = import ./programs/tool/docker { inherit pkgs lib; prefix = devPrefix; };
+  playwright = import ./programs/tool/playwright { inherit pkgs lib; };
+  sysupdate = import ./programs/sys/update {
     inherit pkgs lib hostName isWsl;
     prefix = devPrefix;
     # git comes from programs.git rather than the list above, so it is named
@@ -157,21 +157,25 @@ let
   # Both read sysupdate's state directory: the clean-up notice stays quiet while
   # an update is pending, and doctor checks the update timer still runs.
   sysupdateStateDir = sysupdate.stateDir;
-  compact = import ./programs/compact {
+  compact = import ./programs/sys/compact {
     inherit pkgs lib isWsl sysupdateStateDir;
     prefix = devPrefix;
   };
-  doctor = import ./programs/doctor {
+  doctor = import ./programs/sys/doctor {
     inherit pkgs lib isWsl sysupdateStateDir;
     prefix = devPrefix;
     inherit compact;
   };
-  # `config` would shadow the module argument of the same name.
-  configCommand = import ./programs/config {
-    inherit pkgs lib hostName sysupdateStateDir;
+  configBuild = import ./programs/config/build {
+    inherit pkgs lib hostName;
     prefix = devPrefix;
   };
-  scratch = import ./programs/scratch {
+  configUpdate = import ./programs/config/update {
+    inherit pkgs lib sysupdateStateDir;
+    prefix = devPrefix;
+    build = configBuild;
+  };
+  scratch = import ./programs/repo/scratch {
     inherit pkgs lib repoconfig;
     prefix = devPrefix;
   };
@@ -279,11 +283,11 @@ in
     ${sysupdate.notice}/bin/sysupdate-notice
 
     # The same for disk space, but only when sysupdate printed nothing: one
-    # nag per shell, and the update comes first. See programs/compact.
+    # nag per shell, and the update comes first. See programs/sys/compact.
     ${compact.notice}/bin/compact-notice
 
     # Names `repoconfig` when you cd into a repo it has not been run in. See
-    # programs/repoconfig.
+    # programs/repo/init.
     ${repoconfig.shellInit}
 
     # Tab completion for the prefix.
@@ -298,7 +302,7 @@ in
   # newest inputs and caches the answer for the notice above to print.
   #
   # This is not system.autoUpgrade and does not want to be. See
-  # programs/sysupdate for why, in WSL and off it.
+  # programs/sys/update for why, in WSL and off it.
   systemd.services.sysupdate-check = {
     description = "Check for pending system updates";
     # Deliberately not network-online.target: nothing provides it in WSL, and

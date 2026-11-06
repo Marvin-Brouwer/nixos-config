@@ -15,7 +15,7 @@ not have to be remembered. It is a bash prompt hook rather than a git hook: git
 has no post-clone hook, and the template-dir `post-checkout` workaround copies a
 hook into every clone and still misses repos cloned before it. It fires once per
 visit, and `git config --local repoconfig.skip true` silences it for a repo.
-`dev repoconfig --list` shows the presets, `dev --help` every command this setup adds.
+`rig repoconfig --list` shows the presets, `rig --help` every command this setup adds.
 
 ## What it does
 

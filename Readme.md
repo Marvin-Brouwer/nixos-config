@@ -25,7 +25,7 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   ├─ lib/
 │   │   └─ nix-ld-libs.nix          # libraries that let vendor binaries run
 │   ├─ programs/
-│   │   ├─ dev.nix                  # the `dev` prefix for the commands below
+│   │   ├─ rig.nix                  # the `rig` prefix for the commands below
 │   │   ├─ mise.toml                # installed to /etc/mise/config.toml
 │   │   ├─ repoconfig.nix           # one-shot repo setup command, and its hint
 │   │   ├─ sysupdate.nix            # update command, check, shell notice
@@ -73,8 +73,8 @@ You do not have to remember the name. Entering a git repo that has no
 `mise.toml` prints it:
 
 ```txt
-This repo is not set up yet, run: dev repoconfig <dotnet|empty|ts> <email>
-   (dev --help lists every command on this machine)
+This repo is not set up yet, run: rig repoconfig <dotnet|empty|ts> <email>
+   (rig --help lists every command on this machine)
 ```
 
 For a repo you deliberately leave alone, `git config --local repoconfig.skip true`
@@ -82,14 +82,14 @@ silences the hint there.
 
 ## One prefix for everything
 
-Every command this setup adds is also reachable through `dev`, so there is one
+Every command this setup adds is also reachable through `rig`, so there is one
 name to remember:
 
 ```bash
-dev --help                 # every command, one line each
-dev repoconfig --help      # that command's own help page
-dev repoconfig --list      # the presets
-dev sysupdate              # same as sysupdate
+rig --help                 # every command, one line each
+rig repoconfig --help      # that command's own help page
+rig repoconfig --list      # the presets
+rig sysupdate              # same as sysupdate
 ```
 
 Tab completion covers the command names and their first argument. The bare

@@ -1,19 +1,19 @@
 # -----------------------------------------------------------------
-# `dev` (the prefix is set in configuration.nix) -- one prefix for every command this setup adds.
+# `rig` (the name is devPrefix in configuration.nix) -- one prefix for every command this setup adds.
 #
 # They are few and used rarely, which is exactly the combination that makes
 # their names hard to remember. So there is one name to remember instead:
 #
-#   dev --help                  what there is
-#   dev <command> [args...]     runs it, args passed through untouched
-#   dev <command> --help        that command's own help page
+#   rig --help                  what there is
+#   rig <command> [args...]     runs it, args passed through untouched
+#   rig <command> --help        that command's own help page
 #
-# The commands stay on PATH under their own names as well. `dev` only execs
+# The commands stay on PATH under their own names as well. `rig` only execs
 # them, so nothing that calls `sysupdate` directly (the shell notice, muscle
 # memory) has to change.
 #
 # Each entry is the package, a usage line and one sentence on when to reach for
-# it. `help` is for a command that has no --help of its own; `dev` prints it
+# it. `help` is for a command that has no --help of its own; `rig` prints it
 # instead of passing the flag through.
 # -----------------------------------------------------------------
 
@@ -74,7 +74,7 @@ let
   # Tab completion: command names after the prefix, then whatever each entry offers
   # for its first argument (repoconfig's presets, for instance).
   completion = ''
-    __dev_complete() {
+    __rig_complete() {
       local cur=''${COMP_WORDS[COMP_CWORD]}
       if [ "$COMP_CWORD" -eq 1 ]; then
         COMPREPLY=($(compgen -W "--help ${lib.concatStringsSep " " names}" -- "$cur"))
@@ -87,7 +87,7 @@ let
     '') names}
       esac
     }
-    complete -F __dev_complete ${prefix}
+    complete -F __rig_complete ${prefix}
   '';
 in
 {

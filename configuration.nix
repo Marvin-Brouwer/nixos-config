@@ -39,12 +39,12 @@ let
 
   vscode = import ./programs/vscode.nix { inherit pkgs lib; };
   repoconfig = import ./programs/repoconfig.nix { inherit pkgs lib; prefix = devPrefix; };
-  # `dev` is the one name to remember; see programs/dev.nix. Every command this
+  # `rig` is the one name to remember; see programs/rig.nix. Every command this
   # repo builds is listed here, so a new one is an entry rather than a name to
   # forget.
   # The prefix itself. Renaming it is this one string.
-  devPrefix = "dev";
-  dev = import ./programs/dev.nix {
+  devPrefix = "rig";
+  rig = import ./programs/rig.nix {
     inherit pkgs lib;
     prefix = devPrefix;
     commands = {
@@ -119,8 +119,8 @@ in
     # The hint that names it on entering a repo is in the shell init below.
     repoconfig.repoconfig
 
-    # One prefix for all of the above: `dev --help`.
-    dev.package
+    # One prefix for all of the above: `rig --help`.
+    rig.package
 
     # Break-glass FHS sandbox for when nix-ld does not cover a browser.
     playwright
@@ -199,7 +199,7 @@ in
     ${repoconfig.shellInit}
 
     # Tab completion for the prefix.
-    ${dev.completion}
+    ${rig.completion}
   '';
 
   # Pending system updates.

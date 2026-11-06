@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Part of sysupdate.sh, inlined into it in order at build time.
+# Part of sysupdate.sh, inlined into it at build time.
 # commit_lock and push_lock, used by apply.sh.
 
 # Committing is what makes the machine reproducible and what carries the

@@ -1,16 +1,16 @@
 # shellcheck shell=bash
-# Part of repoconfig.sh, inlined into it in order at build time.
-# --sandbox: writes the dev container, and ends the run before anything
-# touches the network.
+# Part of repoconfig.sh, inlined into it at build time.
+# --sandbox: the dev container. The run ends after this, before anything
+# touches the network or runs the repo's config on the host.
 
-# --- sandbox ---
 # A repo with its own .devcontainer keeps it, and is not excluded either:
 # that one is the project's, and whether it forwards anything is up to it.
-if [ -n "$SANDBOX" ]; then
+write_sandbox() {
   # Marks the repo for vscode-sync, which then leaves the host's plugins
   # alone here: the repo's own extensions.json is as untrusted as the rest.
   git config --local repoconfig.sandbox true
   say "repoconfig.sandbox: vscode-sync skips this repo"
+
   if [ -f .devcontainer/check-sandbox.sh ]; then
     kept ".devcontainer/ (sandbox)"
   elif [ -e .devcontainer ]; then
@@ -21,18 +21,15 @@ if [ -n "$SANDBOX" ]; then
     cp "$SANDBOX_CHECK" .devcontainer/check-sandbox.sh
     chmod +w .devcontainer/check-sandbox.sh
     made ".devcontainer/ (sandbox)"
-    if grep -qxF ".devcontainer/" "$EXCLUDE" 2>/dev/null; then
-      kept "$EXCLUDE entry for .devcontainer/"
-    else
-      printf '%s\n' ".devcontainer/" >> "$EXCLUDE"
-      made "$EXCLUDE entry for .devcontainer/"
-    fi
+    exclude_devcontainer
   fi
-fi
+}
 
-# The sandbox stops here: every step below runs the repo's config on the
-# host, which is exactly what it is for avoiding.
-if [ -n "$SANDBOX" ]; then
-  printf '\n   Done. Open the repo in VS Code and run "Dev Containers: Reopen in Container".\n\n'
-  exit 0
-fi
+exclude_devcontainer() {
+  if grep -qxF ".devcontainer/" "$EXCLUDE" 2>/dev/null; then
+    kept "$EXCLUDE entry for .devcontainer/"
+  else
+    printf '%s\n' ".devcontainer/" >> "$EXCLUDE"
+    made "$EXCLUDE entry for .devcontainer/"
+  fi
+}

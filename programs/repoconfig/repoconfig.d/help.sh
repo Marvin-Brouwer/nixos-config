@@ -1,7 +1,8 @@
 # shellcheck shell=bash
 # Part of repoconfig.sh, inlined into it at build time: its --help.
 
-cat <<HELP
+print_help() {
+  cat <<HELP
 $USAGE
        $PREFIX repoconfig --list
        $PREFIX repoconfig --help
@@ -22,3 +23,4 @@ not trust: open it with "Dev Containers: Reopen in Container".
 Nothing that exists is overwritten, so re-running is safe.
 --list shows the presets. Details: ~/nixos-config/docs/repoconfig.md
 HELP
+}

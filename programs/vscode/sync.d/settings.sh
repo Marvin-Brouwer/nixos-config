@@ -1,8 +1,7 @@
 # shellcheck shell=bash
-# Part of sync.sh, inlined into it in order at build time.
-# ensure_settings, the one-off Windows user settings.
+# Part of sync.sh, inlined into it at build time.
+# The one-off Windows VSCode user settings.
 
-# --- Windows VSCode user settings ---
 # The integrated terminal defaults to this distro, and Dev Containers stops
 # forwarding host credentials into containers. A container opened by
 # `rig repoconfig --sandbox` exists to keep a repo's dependencies away from

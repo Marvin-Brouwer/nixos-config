@@ -1,0 +1,12 @@
+[tools]
+dotnet = "latest"
+
+# [_.vscode]
+# .vscode/extensions.json
+
+# [_.dotnet]
+# global.json
+
+[tasks.setup]
+description = "First run after cloning"
+run = ["dotnet restore"]

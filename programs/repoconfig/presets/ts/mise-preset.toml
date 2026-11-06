@@ -1,0 +1,11 @@
+[tools]
+"npm:pnpm" = "latest"
+node = "lts"
+"npm:typescript" = "latest"
+
+# [_.vscode]
+# .vscode/extensions.json
+
+[tasks.setup]
+description = "First run after cloning"
+run = ["pnpm install"]

@@ -1,6 +1,7 @@
 """Turn two Nix closures into the pending-update notice.
 
-Called by programs/sysupdate.nix, from the sysupdate-check systemd unit.
+Called by check.sh, from the sysupdate-check systemd unit, and by
+sysupdate.sh when it stages an update.
 
 Input is two lists of store paths: the running system's runtime closure and
 the *derivation* closure of the system that would be built against the newer

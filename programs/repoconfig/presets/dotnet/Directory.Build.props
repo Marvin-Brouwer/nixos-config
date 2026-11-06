@@ -1,0 +1,7 @@
+<Project>
+  <!-- Pin every package, transitive ones included, in packages.lock.json. Commit those files. -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CI)' == 'true' Or '$(TF_BUILD)' == 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>

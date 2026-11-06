@@ -42,8 +42,8 @@ let
   # remember and `rig --help` to fall back on. Renaming it is this one string.
   devPrefix = "rig";
 
-  vscode = import ./programs/vscode.nix { inherit pkgs lib; prefix = devPrefix; };
-  repoconfig = import ./programs/repoconfig.nix {
+  vscode = import ./programs/vscode { inherit pkgs lib; prefix = devPrefix; };
+  repoconfig = import ./programs/repoconfig {
     inherit pkgs lib;
     prefix = devPrefix;
     vscodeSync = vscode;
@@ -91,7 +91,7 @@ let
     };
   };
   playwright = import ./tools/playwright.nix { inherit pkgs lib; };
-  sysupdate = import ./programs/sysupdate.nix {
+  sysupdate = import ./programs/sysupdate {
     inherit pkgs lib hostName isWsl;
     prefix = devPrefix;
     # git comes from programs.git rather than the list above, so it is named
@@ -196,7 +196,7 @@ in
     ${sysupdate.notice}/bin/sysupdate-notice
 
     # Names `repoconfig` when you cd into a repo it has not been run in. See
-    # programs/repoconfig.nix.
+    # programs/repoconfig.
     ${repoconfig.shellInit}
 
     # Tab completion for the prefix.
@@ -211,7 +211,7 @@ in
   # newest inputs and caches the answer for the notice above to print.
   #
   # This is not system.autoUpgrade and does not want to be. See
-  # programs/sysupdate.nix for why, in WSL and off it.
+  # programs/sysupdate for why, in WSL and off it.
   systemd.services.sysupdate-check = {
     description = "Check for pending system updates";
     # Deliberately not network-online.target: nothing provides it in WSL, and

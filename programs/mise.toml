@@ -43,7 +43,7 @@ lockfile = true
 idiomatic_version_file_enable_tools = []
 
 [hooks]
-# Sync VSCode plugins on entering a project. See programs/vscode.nix.
+# Sync VSCode plugins on entering a project. See programs/vscode/.
 # Only fires inside a trusted mise project, so a repo needs a mise.toml
 # and one `mise trust`.
 #

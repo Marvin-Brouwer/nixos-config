@@ -14,7 +14,8 @@
 #   * vscode-sync uses the presence of mise.toml to decide a directory is a
 #     managed repo, so without one a project gets no plugin sync either.
 #
-# Presets differ only in what goes into mise.toml and .vscode/extensions.json.
+# Presets differ in what goes into mise.toml and .vscode/extensions.json, plus
+# a Directory.Build.props for dotnet.
 #
 # Two outputs, wired up in configuration.nix:
 #
@@ -116,6 +117,36 @@ let
     '');
   };
 
+  # NuGet has no equivalent of pnpm's defaults: nothing holds back a version
+  # published an hour ago, and a package's build targets, analyzers and source
+  # generators run on every build, in the IDE too. A committed
+  # packages.lock.json at least stops a transitive dependency from moving
+  # without a diff. Locked mode only in CI, so a local restore can still update
+  # the lock file while a mismatch fails the pipeline instead of rewriting it.
+  # CI covers GitHub Actions and most others, TF_BUILD covers Azure Pipelines;
+  # MSBuild compares case-insensitively.
+  #
+  # Package source mapping is deliberately not here: with nuget.org as the only
+  # feed there is nothing to confuse. It earns its place once a private feed is
+  # added.
+  #
+  # Unlike .git/info/exclude, this is committed, so the comment in it is for the
+  # team rather than for me.
+  directoryBuildProps = pkgs.writeText "Directory.Build.props" ''
+    <Project>
+      <!-- Pin every package, transitive ones included, in packages.lock.json. Commit those files. -->
+      <PropertyGroup>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <RestoreLockedMode Condition="'$(CI)' == 'true' Or '$(TF_BUILD)' == 'true'">true</RestoreLockedMode>
+      </PropertyGroup>
+    </Project>
+  '';
+
+  # Preset-specific files beyond mise.toml and extensions.json, by repo path.
+  extraFiles = {
+    dotnet = { "Directory.Build.props" = directoryBuildProps; };
+  };
+
   extensionsJson = lib.mapAttrs (name: exts:
     pkgs.writeText "extensions-${name}.json" (builtins.toJSON {
       recommendations = exts;
@@ -129,7 +160,7 @@ let
   descriptions = {
     empty  = "no tools, just the mise.toml and extensions.json skeletons";
     ts     = "node lts, pnpm, typescript; TS plugins; setup task runs pnpm install";
-    dotnet = "latest .NET SDK; C# plugin; setup task runs dotnet restore";
+    dotnet = "latest .NET SDK; C# plugin; NuGet lock files; setup task runs dotnet restore";
   };
   presets = lib.attrNames descriptions;
 
@@ -153,8 +184,9 @@ let
       2. mise.toml from the preset, then mise trust
       3. an empty mise.lock, so mise starts pinning versions
       4. .vscode/extensions.json from the preset
-      5. mise.local.toml in .git/info/exclude
-      6. mise install, mise lock, vscode-sync
+      5. preset files (dotnet: Directory.Build.props with NuGet lock files)
+      6. mise.local.toml in .git/info/exclude
+      7. mise install, mise lock, vscode-sync
 
     Nothing that exists is overwritten, so re-running is safe.
     --list shows the presets. Details: ~/nixos-config/docs/repoconfig.md
@@ -228,6 +260,23 @@ let
       ${pkgs.jq}/bin/jq . "$EXT_SRC" > .vscode/extensions.json
       made ".vscode/extensions.json"
     fi
+
+    # --- preset files ---
+    install_extra() {
+      if [ -e "$1" ]; then
+        kept "$1"
+      else
+        ${pkgs.coreutils}/bin/cp "$2" "$1"
+        ${pkgs.coreutils}/bin/chmod +w "$1"
+        made "$1"
+      fi
+    }
+    case "$PRESET" in
+    ${lib.concatMapStrings (name: ''
+      ${name}) ${lib.concatStrings (lib.mapAttrsToList (path: src:
+        "install_extra ${lib.escapeShellArg path} ${src}; ") extraFiles.${name})}: ;;
+    '') (lib.attrNames extraFiles)}
+    esac
 
     # --- local ignores ---
     # .git/info/exclude rather than .gitignore: personal tooling should not turn

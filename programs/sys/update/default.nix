@@ -32,7 +32,7 @@
 # second machine is two bindings rather than a rewrite.
 # -----------------------------------------------------------------
 
-{ pkgs, unstable, lib, hostName, isWsl, watch, prefix }:
+{ pkgs, lib, hostName, isWsl, watch, prefix }:
 
 let
   script = import ../../../lib/shell-script.nix { inherit pkgs lib; };
@@ -98,11 +98,9 @@ let
     name = "sysupdate";
     file = ./sysupdate.sh;
     excludeShellChecks = noBacktickWarning;
-    # vulnix from unstable, the same one systemTools installs, so --audit and
-    # a plain `vulnix` run agree.
     runtimeInputs = with pkgs; [
-      coreutils git nix jq gnused nvd nixos-rebuild python notice
-    ] ++ [ unstable.vulnix ];
+      coreutils git nix jq gnused nvd vulnix nixos-rebuild python notice
+    ];
     inline = {
       HELPERS = ./helpers.sh;
       HIGHLIGHT = ../../../lib/highlight.sh;

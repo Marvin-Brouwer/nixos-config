@@ -1,4 +1,4 @@
-{ config, pkgs, unstable, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   # The facts about this particular machine, as opposed to about the setup.
@@ -11,9 +11,6 @@ let
   # Upstream packages, in a binding because `sysupdate` names them in the
   # pending-update notice. Anything built in this repo stays out of it: a local
   # script has no upstream version to compare against.
-  #
-  # Most come from the 26.05 release. The few taken from `unstable` are tools
-  # where stable lags whole release lines behind upstream; see flake.nix.
   systemTools = with pkgs; [
     librewolf
     # No git here on purpose. programs.git below installs it and registers the
@@ -24,12 +21,10 @@ let
 
     # Not version sensitive per project, so they belong to the machine.
     jq
-    unstable.htop
+    htop
 
     # Per-project tool versions. See programs/mise.toml.
-    # From unstable: mise ships several releases a month, and the one frozen
-    # into 26.05 is from May.
-    unstable.mise
+    mise
     # mise verifies the OpenPGP signature on node releases with external gpg,
     # and skips the check with a warning when it cannot find one.
     gnupg
@@ -39,7 +34,7 @@ let
     # been. Expect false positives: it matches on name and version, and NixOS
     # backports fixes without always bumping the version string. A prompt to
     # look, not a verdict. `sysupdate --audit` is the shorthand.
-    unstable.vulnix
+    vulnix
   ];
 
   # The one command this repo puts on PATH. Everything below is reached through
@@ -149,15 +144,15 @@ let
     };
   };
   dockerDaemon = import ./programs/tool/docker { inherit pkgs lib; prefix = devPrefix; };
-  playwright = import ./programs/tool/playwright { inherit pkgs unstable lib; };
+  playwright = import ./programs/tool/playwright { inherit pkgs lib; };
   sysupdate = import ./programs/sys/update {
-    inherit pkgs unstable lib hostName isWsl;
+    inherit pkgs lib hostName isWsl;
     prefix = devPrefix;
     # git comes from programs.git rather than the list above, so it is named
     # here explicitly. Otherwise the one package most worth seeing a version
     # bump for would be the one the notice never mentions.
     # Docker is installed by virtualisation.docker below, for the same reason.
-    watch = systemTools ++ [ config.programs.git.package config.virtualisation.docker.package ];
+    watch = systemTools ++ [ pkgs.git config.virtualisation.docker.package ];
   };
   # Both read sysupdate's state directory: the clean-up notice stays quiet while
   # an update is pending, and doctor checks the update timer still runs.
@@ -229,8 +224,6 @@ in
   # `lfs: true` are unaffected, so this only bites local clones.
   programs.git = {
     enable = true;
-    # From unstable, with the tools above. 26.05 carries 2.54.
-    package = unstable.git;
     lfs.enable = true;
   };
 

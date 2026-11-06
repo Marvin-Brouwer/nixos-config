@@ -26,6 +26,10 @@ trust them if anything here looks out of date.
   them only when the user asks you to, and pass the answers on. `rig compact
   --yes` skips its question. It deletes system generations older than 14 days,
   which means you can't roll back to them.
+- `rig config build` and `rig config update` switch the running system, and
+  `update` also checks out `main`. Run them only when the user asks. To check a change to
+  the config builds without switching, use
+  `nix build /etc/nixos#nixosConfigurations.nix-wsl.config.system.build.toplevel --no-link`.
 - `rig scratch` opens an interactive shell, so don't run it from an agent.
 - `rig doctor`, `rig compact --check` and `rig sysupdate --status` are
   read-only. They're the safe first step when something about the machine

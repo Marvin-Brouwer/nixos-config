@@ -73,6 +73,12 @@ let
         usage = "vscode-sync [--wait|--detach]";
         complete = [ "--wait" "--detach" ];
       };
+      config = {
+        package = configCommand;
+        summary = "build this config's checked-out branch, or update to main";
+        usage = "config <build [dir]|update>";
+        complete = [ "build" "update" ];
+      };
       compact = {
         package = compact.compact;
         summary = "free disk space: old generations, Docker, unused mise tools";
@@ -128,6 +134,11 @@ let
     inherit pkgs lib isWsl sysupdateStateDir;
     prefix = devPrefix;
     inherit compact;
+  };
+  # `config` would shadow the module argument of the same name.
+  configCommand = import ./programs/config {
+    inherit pkgs lib hostName sysupdateStateDir;
+    prefix = devPrefix;
   };
   scratch = import ./programs/scratch {
     inherit pkgs lib repoconfig;

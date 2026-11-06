@@ -23,6 +23,7 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   ├─ flake.nix                    # entry point
 │   ├─ configuration.nix            # the NixOS system
 │   ├─ lib/
+│   │   ├─ config-repo.sh           # where /etc/nixos points, for the commands
 │   │   ├─ nix-ld-libs.nix          # libraries that let vendor binaries run
 │   │   └─ shell-script.nix         # turns the .sh files into commands
 │   ├─ programs/
@@ -43,6 +44,7 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   │   ├─ compact/                 # disk clean-up command, check, shell notice
 │   │   ├─ doctor/                  # the health check, doctor.d/ per area
 │   │   ├─ scratch/                 # throwaway repo with a preset
+│   │   ├─ config/                  # build a branch of this repo, or update to main
 │   │   ├─ vscode/                  # the plugin sync command
 │   │   │   ├─ default.nix
 │   │   │   ├─ sync.sh
@@ -96,6 +98,8 @@ rig sysupdate              # see and apply system updates
 rig compact                # free disk space, see docs/compact.md
 rig doctor                 # something is off? see docs/doctor.md
 rig scratch ts             # a throwaway repo, see docs/scratch.md
+rig config build           # build this checkout's branch and switch to it
+rig config update          # back to main, pull, rebuild if anything changed
 ```
 
 Claude Code knows them too. The config installs a user skill at
@@ -188,6 +192,15 @@ Nothing here is `system.autoUpgrade`. It activates silently, which defeats the
 purpose, and in WSL its timer never fires anyway. Why, and how the background
 check works without slowing down your prompt, is in
 [docs/sysupdate.md](docs/sysupdate.md).
+
+## Changing the config
+
+`rig config build` builds whatever branch the checkout is on and switches to it,
+which is `sudo nixos-rebuild switch --flake .#nix-wsl` with a diff first and
+nothing to remember. `rig config update` is the way back: it switches to
+`main`, pulls it and rebuilds when that changed anything, and stops instead of
+guessing when the tree is dirty or `main` has diverged. See
+[docs/config.md](docs/config.md).
 
 ## Housekeeping
 

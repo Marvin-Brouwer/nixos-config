@@ -6,7 +6,7 @@ I want to run `python` and get whichever version that project needs.
 Two halves:
 
 - **NixOS** is the machine. git, curl, browsers, the VSCode plumbing, keeping
-  itself up to date, and the helper commands below.
+  itself up to date, and the helper commands below, all under `rig`.
 - **[mise](https://mise.jdx.dev/)** is the tools. node, pnpm, dotnet, per project,
   because nixpkgs only carries the runtime majors it packages and arbitrary
   versions are the one thing it cannot give you.
@@ -62,28 +62,10 @@ wsl --shutdown
 wsl
 ```
 
-## Setting up a project
-
-```bash
-cd ~/repos/my-project
-rig repoconfig ts me@example.com
-```
-
-You do not have to remember the name. Entering a git repo that has no
-`mise.toml` prints it:
-
-```txt
-This repo is not set up yet, run: rig repoconfig <dotnet|empty|ts> <email>
-   (rig --help lists every command on this machine)
-```
-
-For a repo you deliberately leave alone, `git config --local repoconfig.skip true`
-silences the hint there.
-
 ## One prefix for everything
 
-Every command this setup adds is also reachable through `rig`, so there is one
-name to remember:
+Every command this setup adds lives under `rig`, so there is one name to
+remember:
 
 ```bash
 rig --help                 # every command, one line each
@@ -92,9 +74,16 @@ rig repoconfig --list      # the presets
 rig sysupdate              # see and apply system updates
 ```
 
-Tab completion covers the command names and their first argument. `rig` is the
-only one of these on PATH: the commands are not installed under their own names.
+Tab completion covers the command names and their first argument. Only `rig`
+is on PATH; the commands are not installed under their own names.
 The prefix itself is `devPrefix` in `configuration.nix`.
+
+## Setting up a project
+
+```bash
+cd ~/repos/my-project
+rig repoconfig ts me@example.com
+```
 
 The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
 `mise.toml` and `.vscode/extensions.json`. Everything else is the same:
@@ -110,6 +99,17 @@ The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
 
 Nothing is overwritten. Anything already present is kept and logged, so
 re-running is safe. What each step is for is in [docs/repoconfig.md](docs/repoconfig.md).
+
+You do not have to remember the name. Entering a git repo that has no
+`mise.toml` prints it:
+
+```txt
+This repo is not set up yet, run: rig repoconfig <dotnet|empty|ts> <email>
+   (rig --help lists every command on this machine)
+```
+
+For a repo you deliberately leave alone, `git config --local repoconfig.skip true`
+silences the hint there.
 
 `mise.toml` and `mise.lock` both get committed. The first is the spec and can
 float, the second records the exact version every machine installs, and `mise up`

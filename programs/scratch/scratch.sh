@@ -16,9 +16,9 @@ EMAIL="scratch@localhost"
 die() { printf '\033[1;31mscratch:\033[0m %s\n' "$*" >&2; exit 1; }
 usage() {
   cat <<USAGE
-usage: $PREFIX scratch [preset] [--keep]
+usage: $PREFIX repo scratch [preset] [--keep]
 
-Makes a temp git repo, runs '$PREFIX repoconfig <preset>' in it and opens a
+Makes a temp git repo, runs '$PREFIX repo init <preset>' in it and opens a
 shell there. Leaving the shell asks whether to delete it; --keep skips the
 question and keeps it. The preset defaults to empty.
 

@@ -4,8 +4,8 @@
 print_help() {
   cat <<HELP
 $USAGE
-       $PREFIX repoconfig --list
-       $PREFIX repoconfig --help
+       $PREFIX repo init --list
+       $PREFIX repo init --help
 
 Sets up the git repo you are in for this machine:
 

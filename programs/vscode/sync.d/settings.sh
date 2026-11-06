@@ -4,7 +4,7 @@
 
 # The integrated terminal defaults to this distro, and Dev Containers stops
 # forwarding host credentials into containers. A container opened by
-# `rig repoconfig --sandbox` exists to keep a repo's dependencies away from
+# `rig repo init --sandbox` exists to keep a repo's dependencies away from
 # those, and these are user settings on the Windows side, so they cannot be
 # set from the container's own devcontainer.json. They apply to every dev
 # container: push from the host, not from inside one. See docs/sandbox.md.

@@ -29,7 +29,7 @@ section() { printf '\n\033[1;34m== %s\033[0m\n' "$1"; }
 
 usage() {
   cat <<USAGE
-usage: $PREFIX doctor
+usage: $PREFIX sys doctor
 
 Checks the pieces this setup leans on and prints ok, warn or FAIL for each,
 with what to do about anything that is not ok. Changes nothing.

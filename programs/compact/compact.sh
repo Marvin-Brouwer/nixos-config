@@ -24,7 +24,7 @@ set -uo pipefail
 say() { printf '   %s\n' "$*"; }
 usage() {
   cat <<USAGE
-usage: $PREFIX compact [option]
+usage: $PREFIX sys compact [option]
 
   (no option)  show what would be removed, ask, then remove it
   --yes, -y    the same without asking

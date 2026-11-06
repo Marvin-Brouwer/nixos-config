@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------
 # `config` -- working on this repo itself: build a branch of it and switch to
-# it, or go back to main and pull. Two subcommands behind one name, so
-# `rig --help` stays one entry for both:
+# it, or go back to main and pull. Two commands, grouped under `config` in
+# configuration.nix:
 #
 #   config build    build.sh   build the checkout's branch, diff, switch
 #                   (its steps are build.d/, sourced in order)
@@ -9,7 +9,7 @@
 #                              and `config build` when that changed anything
 #                   (its steps are update.d/)
 #
-# config.sh is the dispatcher. Building is an unprivileged `nix build` first;
+# Building is an unprivileged `nix build` first;
 # only the switch asks for sudo, and a build that is the system already
 # running stops before it. update is fast-forward only, from a clean tree:
 # a merge, rebase or stash is a decision to make by hand, not something to do
@@ -59,12 +59,6 @@ let
     };
   };
 in
-script.application {
-  name = "config";
-  file = ./config.sh;
-  vars = {
-    PREFIX = prefix;
-    BUILD = "${build}/bin/config-build";
-    UPDATE = "${update}/bin/config-update";
-  };
+{
+  inherit build update;
 }

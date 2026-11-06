@@ -29,7 +29,7 @@ set -uo pipefail
 say()   { printf '   %s\n' "$*"; }
 usage() {
   cat <<USAGE
-usage: $PREFIX sysupdate [option]
+usage: $PREFIX sys update [option]
 
   (no option)  update the inputs, build, show the diff, apply or stage
   --status     reprint the cached notice

@@ -32,9 +32,9 @@ check_disk_space() {
   local used
   used=$(df --output=pcent / | tail -n 1 | tr -dc '0-9')
   if [ "$used" -ge 90 ]; then
-    fail "the disk is ${used}% full" "\`$PREFIX compact\`"
+    fail "the disk is ${used}% full" "\`$PREFIX sys compact\`"
   elif [ "$used" -ge 80 ]; then
-    warn "the disk is ${used}% full" "\`$PREFIX compact\`"
+    warn "the disk is ${used}% full" "\`$PREFIX sys compact\`"
   else
     ok "the disk is ${used}% full"
   fi
@@ -52,7 +52,7 @@ check_update_timer() {
   local age
   age=$(days_since "$SYSUPDATE_STATE_DIR/last-attempt")
   if [ -z "$age" ]; then
-    warn "the update check has never run" "\`$PREFIX sysupdate --check\`"
+    warn "the update check has never run" "\`$PREFIX sys update --check\`"
   elif [ -f "$SYSUPDATE_STATE_DIR/last-failed" ]; then
     warn "the last update check failed" "\`journalctl -u sysupdate-check\`"
   elif [ "$age" -gt 3 ]; then
@@ -66,7 +66,7 @@ check_compact_timer() {
   local age
   age=$(days_since "$COMPACT_STATE_DIR/last-check")
   if [ -z "$age" ]; then
-    warn "the clean-up check has never run" "\`$PREFIX compact --check\`"
+    warn "the clean-up check has never run" "\`$PREFIX sys compact --check\`"
   elif [ "$age" -gt 3 ]; then
     warn "the clean-up check last ran $age days ago" "\`systemctl list-timers compact-check\`"
   else

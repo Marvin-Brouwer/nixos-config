@@ -36,7 +36,7 @@ want_plugins() {
   # Added after the unwanted filter on purpose: vetoing the extension that
   # makes the editor reach this machine is never what a project meant.
   #
-  # Dev Containers rides along for the same reason: `rig repoconfig --sandbox`
+  # Dev Containers rides along for the same reason: `rig repo init --sandbox`
   # depends on it, and the sync would otherwise uninstall it as unlisted.
   if command -v cmd.exe >/dev/null 2>&1; then
     DESIRED_EXTS="$(printf '%s\nms-vscode-remote.remote-wsl\nms-vscode-remote.remote-containers\n' "$DESIRED_EXTS" | normalise)"

@@ -273,7 +273,7 @@ def main() -> int:
     parser.add_argument("--state-dir", required=True)
     parser.add_argument("--current-system", default="/run/current-system")
     parser.add_argument("--reboot-hint", default="Reboot")
-    parser.add_argument("--command", default="rig sysupdate", help="what the notice tells you to run")
+    parser.add_argument("--command", default="rig sys update", help="what the notice tells you to run")
     parser.add_argument("--now", help="ISO timestamp, for testing")
     args = parser.parse_args()
 

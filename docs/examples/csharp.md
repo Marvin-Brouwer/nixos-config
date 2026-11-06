@@ -10,7 +10,7 @@ Every file a C# project uses to declare what it needs, and who reads it.
 | `**/*.csproj` | package references | dotnet, NuGet |
 | `.vscode/extensions.json` | the project's plugins | VSCode natively |
 
-Start with `repoconfig dotnet you@example.com`, which writes the first, second
+Start with `rig repoconfig dotnet you@example.com`, which writes the first, second
 and last.
 
 ## mise.toml
@@ -38,7 +38,7 @@ run = ["dotnet restore"]
 
 ## mise.lock
 
-Committed, and created by `repoconfig` rather than by mise, which only maintains
+Committed, and created by `rig repoconfig` rather than by mise, which only maintains
 a lockfile that already exists.
 
 ```toml

@@ -22,7 +22,7 @@
 # installs and uninstalls the difference each time.
 # -----------------------------------------------------------------
 
-{ pkgs, lib }:
+{ pkgs, lib, prefix }:
 
 let
   basePlugins = import ./vscode-plugins.nix;
@@ -44,6 +44,22 @@ let
     LOCK_FILE="''${MARKER_DIR}/sync.lock"
     LOG_FILE="''${MARKER_DIR}/last.log"
     ${pkgs.coreutils}/bin/mkdir -p "$MARKER_DIR"
+
+    case "''${1:-}" in
+      -h|--help)
+        ${pkgs.coreutils}/bin/cat <<'HELP'
+    usage: ${prefix} vscode-sync [--wait|--detach]
+
+    Makes the installed VSCode plugins (Windows and WSL side) equal the base list
+    in programs/vscode-plugins.nix plus this repo's .vscode/extensions.json.
+    Runs by itself on entering a repo with a mise.toml.
+
+      (no option)  sync now, in the foreground
+      --wait       wait for a sync the enter hook started
+      --detach     sync in the background, logging to last.log
+    HELP
+        exit 0 ;;
+    esac
 
     # --detach backgrounds the sync and logs instead of printing. The hook does
     # not use it: waiting and seeing the output is worth more than an instant

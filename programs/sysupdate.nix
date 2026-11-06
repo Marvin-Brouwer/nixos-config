@@ -25,7 +25,7 @@
 # configuration.nix, so a second machine is two bindings rather than a rewrite.
 # -----------------------------------------------------------------
 
-{ pkgs, lib, hostName, isWsl, watch }:
+{ pkgs, lib, hostName, isWsl, watch, prefix }:
 
 let
   # Root-owned, world-readable: the check writes it, every shell reads it.
@@ -202,7 +202,8 @@ let
       --watch "${watchNames}" \
       --inputs "$TMP/inputs.json" \
       --state-dir "$STATE_DIR" \
-      --reboot-hint "${rebootHint}" || fail "could not render the notice"
+      --reboot-hint "${rebootHint}" \
+      --command "${prefix} sysupdate" || fail "could not render the notice"
 
     ${pkgs.coreutils}/bin/rm -f "$STATE_DIR/last-failed"
     echo "[sysupdate] check complete"
@@ -244,7 +245,7 @@ let
     say()   { printf '   %s\n' "$*"; }
     usage() {
       ${pkgs.coreutils}/bin/cat <<'USAGE'
-    usage: sysupdate [option]
+    usage: ${prefix} sysupdate [option]
 
       (no option)  update the inputs, build, show the diff, apply or stage
       --status     reprint the cached notice

@@ -4,11 +4,18 @@ One command to set a repo up for this machine.
 
 ```bash
 cd ~/repos/my-project
-repoconfig ts me@example.com
+rig repoconfig ts me@example.com
 ```
 
 The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
 `mise.toml` and `.vscode/extensions.json`.
+
+Entering a git repo without a `mise.toml` prints the command, so the name does
+not have to be remembered. It is a bash prompt hook rather than a git hook: git
+has no post-clone hook, and the template-dir `post-checkout` workaround copies a
+hook into every clone and still misses repos cloned before it. It fires once per
+visit, and `git config --local repoconfig.skip true` silences it for a repo.
+`rig repoconfig --list` shows the presets, `rig --help` every command this setup adds.
 
 ## What it does
 
@@ -21,7 +28,7 @@ Local work first, network last, so an interrupted run still leaves a usable repo
 5. writes `.vscode/extensions.json` from the preset
 6. adds `mise.local.toml` to `.git/info/exclude`
 7. runs `mise install` and `mise lock --platform linux-x64,windows-x64`
-8. runs `vscode-sync`
+8. runs `rig vscode-sync`
 
 Nothing is overwritten. Anything already present is kept and logged, so
 re-running is safe.

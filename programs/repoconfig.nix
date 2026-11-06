@@ -15,9 +15,16 @@
 #     managed repo, so without one a project gets no plugin sync either.
 #
 # Presets differ only in what goes into mise.toml and .vscode/extensions.json.
+#
+# Two outputs, wired up in configuration.nix:
+#
+#   repoconfig   the command
+#   shellInit    a prompt hook that names the command when you enter a git
+#                repo it has not been run in, because that is exactly the
+#                moment the name is needed and the moment it is forgotten
 # -----------------------------------------------------------------
 
-{ pkgs, lib }:
+{ pkgs, lib, prefix, vscodeSync }:
 
 let
   gitUserName = "Marvin Brouwer";
@@ -116,95 +123,185 @@ let
     })
   ) recommendations;
 
+  # One line per preset for `--list`. The preset names everywhere else (usage,
+  # the case below, the prompt hint, completion) come from these keys, so adding
+  # a preset is a mise.toml, a recommendations entry and a line here.
+  descriptions = {
+    empty  = "no tools, just the mise.toml and extensions.json skeletons";
+    ts     = "node lts, pnpm, typescript; TS plugins; setup task runs pnpm install";
+    dotnet = "latest .NET SDK; C# plugin; setup task runs dotnet restore";
+  };
+  presets = lib.attrNames descriptions;
+
+  # Plain text, shared by the command and the prompt hook below so the two
+  # cannot drift apart.
+  usage = "usage: ${prefix} repoconfig <${lib.concatStringsSep "|" presets}> <email>";
+
+  # lib.fixedWidthString pads on the left, which right-aligns the names.
+  listText = lib.concatMapStrings (name:
+    let pad = lib.concatStrings (lib.genList (_: " ") (8 - lib.stringLength name));
+    in "  ${name}${pad}${descriptions.${name}}\n") presets;
+
+  helpText = ''
+    ${usage}
+           ${prefix} repoconfig --list
+           ${prefix} repoconfig --help
+
+    Sets up the git repo you are in for this machine:
+
+      1. git identity (user.name, user.email) on the repo
+      2. mise.toml from the preset, then mise trust
+      3. an empty mise.lock, so mise starts pinning versions
+      4. .vscode/extensions.json from the preset
+      5. mise.local.toml in .git/info/exclude
+      6. mise install, mise lock, vscode-sync
+
+    Nothing that exists is overwritten, so re-running is safe.
+    --list shows the presets. Details: ~/nixos-config/docs/repoconfig.md
+  '';
+
+  repoconfig = pkgs.writeShellScriptBin "repoconfig" ''
+    set -uo pipefail
+
+    PRESET="''${1:-}"
+    EMAIL="''${2:-}"
+
+    say()  { printf '   %s\n' "$*"; }
+    made() { printf '   \033[1;32mcreated\033[0m %s\n' "$*"; }
+    kept() { printf '   \033[1;33mkept\033[0m    %s (already present)\n' "$*"; }
+    die()  { printf '\033[1;31mrepoconfig:\033[0m %s\n' "$*" >&2; exit 1; }
+
+    case "$PRESET" in
+      -h|--help)
+        ${pkgs.coreutils}/bin/cat <<'HELP'
+    ${helpText}HELP
+        exit 0 ;;
+      -l|--list)
+        printf 'Presets:\n\n${listText}\n'
+        exit 0 ;;
+    ${lib.concatMapStrings (name: ''
+      ${name}) MISE_SRC=${miseToml.${name}}; EXT_SRC=${extensionsJson.${name}} ;;
+    '') presets}
+      *) die "${usage} (presets: ${prefix} repoconfig --list)" ;;
+    esac
+    [ -n "$EMAIL" ] || die "${usage}"
+
+    ${pkgs.git}/bin/git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+      || die "not inside a git repository"
+    REPO_ROOT="$(${pkgs.git}/bin/git rev-parse --show-toplevel)"
+    cd "$REPO_ROOT" || die "cannot enter $REPO_ROOT"
+
+    printf '\n\033[1;34m== %s (%s)\033[0m\n' "$(${pkgs.coreutils}/bin/basename "$REPO_ROOT")" "$PRESET"
+
+    # --- git identity ---
+    ${pkgs.git}/bin/git config --local user.name "${gitUserName}"
+    ${pkgs.git}/bin/git config --local user.email "$EMAIL"
+    say "git identity: ${gitUserName} <$EMAIL>"
+
+    # --- mise.toml ---
+    if [ -f mise.toml ] || [ -f .mise.toml ]; then
+      kept "mise.toml"
+    else
+      ${pkgs.coreutils}/bin/cp "$MISE_SRC" mise.toml
+      ${pkgs.coreutils}/bin/chmod +w mise.toml
+      made "mise.toml"
+    fi
+
+    # --- trust, before anything reads the config ---
+    mise trust >/dev/null 2>&1 && say "mise trust" || say "mise trust: nothing to do"
+
+    # --- lockfile ---
+    # mise will not create this itself, and stays silent when it is absent, so a
+    # repo without it quietly gets no pinning at all.
+    if [ -f mise.lock ]; then
+      kept "mise.lock"
+    else
+      ${pkgs.coreutils}/bin/touch mise.lock
+      made "mise.lock"
+    fi
+
+    # --- vscode plugins ---
+    if [ -f .vscode/extensions.json ]; then
+      kept ".vscode/extensions.json"
+    else
+      ${pkgs.coreutils}/bin/mkdir -p .vscode
+      ${pkgs.jq}/bin/jq . "$EXT_SRC" > .vscode/extensions.json
+      made ".vscode/extensions.json"
+    fi
+
+    # --- local ignores ---
+    # .git/info/exclude rather than .gitignore: personal tooling should not turn
+    # up in other people's diffs. mise.toml and mise.lock are meant to be
+    # committed, so only the local override file is excluded.
+    EXCLUDE=".git/info/exclude"
+    ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname "$EXCLUDE")"
+    if ${pkgs.gnugrep}/bin/grep -qxF "mise.local.toml" "$EXCLUDE" 2>/dev/null; then
+      kept "$EXCLUDE entry"
+    else
+      printf '%s\n' "mise.local.toml" >> "$EXCLUDE"
+      made "$EXCLUDE entry for mise.local.toml"
+    fi
+
+    # --- resolve and lock, last ---
+    # Everything above is local and instant. This talks to the network and can
+    # take a minute on a fresh preset, so it goes at the end: a failure or a
+    # ctrl-c here leaves the repo already set up rather than half configured.
+    mise install || say "mise install reported a problem, see above"
+    mise lock --platform linux-x64,windows-x64 || say "mise lock reported a problem, see above"
+
+    # Run the sync here rather than telling you to cd out and back in. The mise
+    # enter hook lives in the interactive shell, so it cannot be triggered from
+    # inside this script; calling it directly does the same job. The repo has a
+    # mise.toml and is trusted by now, so the guard lets it through.
+    echo
+    ${vscodeSync}/bin/vscode-sync
+
+    printf '\n   Done.\n\n'
+  '';
+
+  # Runs before every prompt, so the common case has to cost nothing: an
+  # unchanged $PWD returns on a string compare, and only a directory change
+  # pays for one `git rev-parse`.
+  #
+  # A prompt hook rather than a git hook. git has no post-clone hook, and the
+  # template-dir post-checkout trick copies a hook into every repo you clone,
+  # fires for tools cloning behind your back, and still says nothing about a
+  # repo cloned before it existed. Entering the repo is also when you would
+  # actually run the command, which right after `git clone` you are not yet.
+  #
+  # Once per visit: it stays quiet while you move around inside one repo, and
+  # says it again after you leave and come back. To silence it for a repo you
+  # do not want set up: `git config --local repoconfig.skip true`.
+  #
+  # The wrapper hands back the exit status it was called with, so a prompt that
+  # shows the last command's status still shows yours rather than this hook's.
+  shellInit = ''
+    __repoconfig_hint() {
+      local status=$?
+      __repoconfig_hint_check
+      return $status
+    }
+    __repoconfig_hint_check() {
+      [ "$PWD" = "''${__repoconfig_pwd-}" ] && return
+      __repoconfig_pwd=$PWD
+
+      local root
+      if ! root=$(${pkgs.git}/bin/git rev-parse --show-toplevel 2>/dev/null); then
+        __repoconfig_root=
+        return
+      fi
+      [ "$root" = "''${__repoconfig_root-}" ] && return
+      __repoconfig_root=$root
+
+      [ -f "$root/mise.toml" ] || [ -f "$root/.mise.toml" ] && return
+      [ "$(${pkgs.git}/bin/git -C "$root" config --bool repoconfig.skip 2>/dev/null)" = true ] && return
+
+      printf '\033[1;33mThis repo is not set up yet, run:\033[0m %s\n' "${lib.removePrefix "usage: " usage}"
+      printf '   (${prefix} --help lists every command on this machine)\n'
+    }
+    PROMPT_COMMAND="__repoconfig_hint''${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+  '';
 in
-pkgs.writeShellScriptBin "repoconfig" ''
-  set -uo pipefail
-
-  PRESET="''${1:-}"
-  EMAIL="''${2:-}"
-
-  say()  { printf '   %s\n' "$*"; }
-  made() { printf '   \033[1;32mcreated\033[0m %s\n' "$*"; }
-  kept() { printf '   \033[1;33mkept\033[0m    %s (already present)\n' "$*"; }
-  die()  { printf '\033[1;31mrepoconfig:\033[0m %s\n' "$*" >&2; exit 1; }
-
-  case "$PRESET" in
-    empty)  MISE_SRC=${miseToml.empty};  EXT_SRC=${extensionsJson.empty}  ;;
-    ts)     MISE_SRC=${miseToml.ts};     EXT_SRC=${extensionsJson.ts}     ;;
-    dotnet) MISE_SRC=${miseToml.dotnet}; EXT_SRC=${extensionsJson.dotnet} ;;
-    *) die "usage: repoconfig <empty|ts|dotnet> <email>" ;;
-  esac
-  [ -n "$EMAIL" ] || die "usage: repoconfig <empty|ts|dotnet> <email>"
-
-  ${pkgs.git}/bin/git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
-    || die "not inside a git repository"
-  REPO_ROOT="$(${pkgs.git}/bin/git rev-parse --show-toplevel)"
-  cd "$REPO_ROOT" || die "cannot enter $REPO_ROOT"
-
-  printf '\n\033[1;34m== %s (%s)\033[0m\n' "$(${pkgs.coreutils}/bin/basename "$REPO_ROOT")" "$PRESET"
-
-  # --- git identity ---
-  ${pkgs.git}/bin/git config --local user.name "${gitUserName}"
-  ${pkgs.git}/bin/git config --local user.email "$EMAIL"
-  say "git identity: ${gitUserName} <$EMAIL>"
-
-  # --- mise.toml ---
-  if [ -f mise.toml ] || [ -f .mise.toml ]; then
-    kept "mise.toml"
-  else
-    ${pkgs.coreutils}/bin/cp "$MISE_SRC" mise.toml
-    ${pkgs.coreutils}/bin/chmod +w mise.toml
-    made "mise.toml"
-  fi
-
-  # --- trust, before anything reads the config ---
-  mise trust >/dev/null 2>&1 && say "mise trust" || say "mise trust: nothing to do"
-
-  # --- lockfile ---
-  # mise will not create this itself, and stays silent when it is absent, so a
-  # repo without it quietly gets no pinning at all.
-  if [ -f mise.lock ]; then
-    kept "mise.lock"
-  else
-    ${pkgs.coreutils}/bin/touch mise.lock
-    made "mise.lock"
-  fi
-
-  # --- vscode plugins ---
-  if [ -f .vscode/extensions.json ]; then
-    kept ".vscode/extensions.json"
-  else
-    ${pkgs.coreutils}/bin/mkdir -p .vscode
-    ${pkgs.jq}/bin/jq . "$EXT_SRC" > .vscode/extensions.json
-    made ".vscode/extensions.json"
-  fi
-
-  # --- local ignores ---
-  # .git/info/exclude rather than .gitignore: personal tooling should not turn
-  # up in other people's diffs. mise.toml and mise.lock are meant to be
-  # committed, so only the local override file is excluded.
-  EXCLUDE=".git/info/exclude"
-  ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname "$EXCLUDE")"
-  if ${pkgs.gnugrep}/bin/grep -qxF "mise.local.toml" "$EXCLUDE" 2>/dev/null; then
-    kept "$EXCLUDE entry"
-  else
-    printf '%s\n' "mise.local.toml" >> "$EXCLUDE"
-    made "$EXCLUDE entry for mise.local.toml"
-  fi
-
-  # --- resolve and lock, last ---
-  # Everything above is local and instant. This talks to the network and can
-  # take a minute on a fresh preset, so it goes at the end: a failure or a
-  # ctrl-c here leaves the repo already set up rather than half configured.
-  mise install || say "mise install reported a problem, see above"
-  mise lock --platform linux-x64,windows-x64 || say "mise lock reported a problem, see above"
-
-  # Run the sync here rather than telling you to cd out and back in. The mise
-  # enter hook lives in the interactive shell, so it cannot be triggered from
-  # inside this script; calling it directly does the same job. The repo has a
-  # mise.toml and is trusted by now, so the guard lets it through.
-  echo
-  vscode-sync
-
-  printf '\n   Done.\n\n'
-''
+{
+  inherit repoconfig shellInit presets;
+}

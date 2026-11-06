@@ -185,7 +185,7 @@ def build_rows(old: dict[str, str], new: dict[str, str], first_seen: dict[str, s
     return rows
 
 
-def render(rows: list[dict], watch: list[str], inputs: dict, color: bool) -> str:
+def render(rows: list[dict], watch: list[str], inputs: dict, command: str, color: bool) -> str:
     """The notice itself. Watched packages first, stalest first, then a count."""
     watched = [row for row in rows if row["name"] in watch]
     watched.sort(key=lambda row: (-row["pending_days"], row["name"]))
@@ -221,7 +221,7 @@ def render(rows: list[dict], watch: list[str], inputs: dict, color: bool) -> str
             continue
         lines.append(f" + {name} module: {revs['old'][:7]} -> {revs['new'][:7]}")
 
-    lines += ["", " run sysupdate to update", ""]
+    lines += ["", f" run {command} to update", ""]
     return "\n".join(lines)
 
 
@@ -262,6 +262,7 @@ def main() -> int:
     parser.add_argument("--state-dir", required=True)
     parser.add_argument("--current-system", default="/run/current-system")
     parser.add_argument("--reboot-hint", default="Reboot")
+    parser.add_argument("--command", default="rig sysupdate", help="what the notice tells you to run")
     parser.add_argument("--now", help="ISO timestamp, for testing")
     args = parser.parse_args()
 
@@ -320,8 +321,8 @@ def main() -> int:
 
     write_status(
         state_dir,
-        render(rows, watch, moved, color=False),
-        render(rows, watch, moved, color=True),
+        render(rows, watch, moved, args.command, color=False),
+        render(rows, watch, moved, args.command, color=True),
     )
     return 0
 

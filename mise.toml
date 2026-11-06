@@ -5,3 +5,10 @@
 # nixos-rebuild, which comes from the system rather than from mise.
 
 [tools]
+
+# The scripts under programs/ are shell files with @name@ placeholders, which
+# shellcheck reads as ordinary words. shellcheck comes from this flake's own
+# locked nixpkgs, so there is still no tool to install or pin here.
+[tasks.lint]
+description = "shellcheck the scripts under programs/"
+run = "nix shell --inputs-from . nixpkgs#shellcheck --command shellcheck --source-path=SCRIPTDIR programs/*/*.sh"

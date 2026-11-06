@@ -23,14 +23,25 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   ├─ flake.nix                    # entry point
 │   ├─ configuration.nix            # the NixOS system
 │   ├─ lib/
-│   │   └─ nix-ld-libs.nix          # libraries that let vendor binaries run
+│   │   ├─ nix-ld-libs.nix          # libraries that let vendor binaries run
+│   │   └─ script.nix               # fills in the @placeholders@ in the .sh files
 │   ├─ programs/
 │   │   ├─ rig.nix                  # the `rig` prefix for the commands below
 │   │   ├─ mise.toml                # installed to /etc/mise/config.toml
-│   │   ├─ repoconfig.nix           # one-shot repo setup command, and its hint
-│   │   ├─ sysupdate.nix            # update command, check, shell notice
-│   │   ├─ sysupdate-diff.py        # the closure diff behind the notice
-│   │   ├─ vscode.nix               # the plugin sync command
+│   │   ├─ repoconfig/              # one-shot repo setup command, and its hint
+│   │   │   ├─ default.nix          #   wiring, and what each part is for
+│   │   │   ├─ presets.nix          #   the presets, as data
+│   │   │   ├─ presets/             #   their mise.toml bodies and extra files
+│   │   │   ├─ sandbox.nix          #   --sandbox: the dev container
+│   │   │   └─ *.sh, help.txt       #   the command, prompt hook, attach check
+│   │   ├─ sysupdate/               # update command, check, shell notice
+│   │   │   ├─ default.nix
+│   │   │   ├─ *.sh                 #   one script per command, plus helpers
+│   │   │   └─ diff.py              #   the closure diff behind the notice
+│   │   ├─ vscode/                  # the plugin sync command
+│   │   │   ├─ default.nix
+│   │   │   ├─ sync.sh
+│   │   │   └─ extensions-json.py   #   reads a JSONC extensions.json
 │   │   └─ vscode-plugins.nix       # my base plugin list
 │   ├─ tools/
 │   │   └─ playwright.nix           # FHS fallback sandbox
@@ -42,6 +53,10 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
         ├─ mise.lock                # the exact versions, committed
         └─ .vscode/extensions.json  # this project's plugins
 ```
+
+The shell scripts under `programs/` are real `.sh` files with `@name@`
+placeholders for store paths, filled in by `lib/script.nix`. `mise run lint`
+shellchecks them.
 
 ## Install
 
@@ -192,7 +207,7 @@ hung until you press enter.
 > neither list gets uninstalled, including extensions VSCode ships with.
 > `ms-vscode-remote.remote-wsl` is the one exception. It is machine-specific
 > infrastructure rather than a preference, so it is not in the base list;
-> `programs/vscode.nix` adds it when it sees a Windows side to talk to, after the
+> `programs/vscode/sync.sh` adds it when it sees a Windows side to talk to, after the
 > unwanted filter, because a project vetoing it would leave an editor that cannot
 > open a WSL folder.
 

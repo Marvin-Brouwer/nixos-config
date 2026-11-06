@@ -3,3 +3,6 @@ hardware-configuration.nix
 
 # nixos-rebuild build, when run by hand in this directory
 /result
+
+# Python bytecode, from running the helper scripts by hand
+__pycache__/

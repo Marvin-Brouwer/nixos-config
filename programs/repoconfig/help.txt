@@ -1,0 +1,19 @@
+@usage@
+       @prefix@ repoconfig --list
+       @prefix@ repoconfig --help
+
+Sets up the git repo you are in for this machine:
+
+  1. git identity (user.name, user.email) on the repo
+  2. mise.toml from the preset, then mise trust
+  3. an empty mise.lock, so mise starts pinning versions
+  4. .vscode/extensions.json from the preset
+  5. preset files (dotnet: Directory.Build.props with NuGet lock files)
+  6. mise.local.toml in .git/info/exclude
+  7. mise install, mise lock, vscode-sync
+
+--sandbox also writes .devcontainer/ (locally excluded), for a repo you do
+not trust: open it with "Dev Containers: Reopen in Container".
+
+Nothing that exists is overwritten, so re-running is safe.
+--list shows the presets. Details: ~/nixos-config/docs/repoconfig.md

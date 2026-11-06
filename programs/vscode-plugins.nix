@@ -7,7 +7,7 @@
 #
 # A project's own plugins live in its .vscode/extensions.json, which is
 # the standard file VSCode already prompts contributors to install.
-# programs/vscode.nix unions the two, so this list is the "on top of my
+# programs/vscode/ unions the two, so this list is the "on top of my
 # default profile" half.
 #
 # Marketplace IDs, publisher.name format.
@@ -20,7 +20,7 @@
 
 # ms-vscode-remote.remote-wsl is deliberately not here. It is required
 # infrastructure rather than a preference, and only on a machine that has a WSL
-# remote to connect to, so programs/vscode.nix adds it when it detects one.
+# remote to connect to, so programs/vscode/sync.sh adds it when it detects one.
 
 [
   "jnoortheen.nix-ide"

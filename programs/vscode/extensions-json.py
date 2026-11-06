@@ -1,9 +1,9 @@
 """Read one array out of a project's .vscode/extensions.json.
 
-Called by programs/vscode.nix. That file is JSONC: comments and trailing
+Called by programs/vscode/sync.sh. That file is JSONC: comments and trailing
 commas are legal and worth keeping, which is why this is not jq.
 
-Usage: vscode-extensions-json.py <file> <key>
+Usage: extensions-json.py <file> <key>
 Prints one entry per line. A malformed file warns and yields nothing,
 so a typo in a project's config cannot break entering the directory.
 """

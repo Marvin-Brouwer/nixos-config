@@ -38,7 +38,7 @@
 # Once a webkit run passes without this, it can go.
 # -----------------------------------------------------------------
 
-{ pkgs, lib }:
+{ pkgs, unstable, lib }:
 
 let
   browserLibs = import ../../../lib/nix-ld-libs.nix { inherit pkgs lib; };
@@ -51,11 +51,11 @@ let
       ++ (with p; [
         # mise, so the project's own pinned node and pnpm are reachable
         # inside the sandbox rather than a second, different node.
-        mise
+        unstable.mise
         # ...but keep a working node here too, so the sandbox is still
         # useful as break-glass in a repo that has no mise.toml.
         nodejs_24
-        pnpm
+        unstable.pnpm
         cacert
         curl
         git

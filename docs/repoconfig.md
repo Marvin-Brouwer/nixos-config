@@ -34,6 +34,10 @@ Local work first, network last, so an interrupted run still leaves a usable repo
 Nothing is overwritten. Anything already present is kept and logged, so
 re-running is safe.
 
+For a repo you don't trust, add `--sandbox`. It writes a dev container and
+skips every step that would run the repo's own config on the host. See
+[sandbox.md](sandbox.md).
+
 ## Why it is a command
 
 Every step is something that fails quietly when skipped.

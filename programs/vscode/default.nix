@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------
 # VSCode plugin sync, triggered by the mise `enter` hook in programs/mise.toml.
-# The command itself is sync.sh, given its tools and values by
-# lib/shell-script.nix.
+# The command itself is sync.sh, which sources sync.d/ step by step. It gets
+# its tools and values from lib/shell-script.nix.
 #
 # What it installs is the union of two lists:
 #
@@ -43,4 +43,5 @@ script.application {
     EXTENSIONS_JSON_PY = ./extensions-json.py;
     BASE_EXTS = lib.concatStringsSep "\n" (map lib.toLower basePlugins);
   };
+  inline.PARTS = ./sync.d;
 }

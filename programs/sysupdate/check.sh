@@ -12,7 +12,7 @@
 
 set -uo pipefail
 
-: "${STATE_DIR:?}" "${HELPERS:?}" "${HOST_NAME:?}" "${PREFIX:?}" "${WATCH:?}"
+: "${STATE_DIR:?}" "${HOST_NAME:?}" "${PREFIX:?}" "${WATCH:?}"
 : "${MIN_INTERVAL:?}" "${RETRY_INTERVAL:?}" "${REBOOT_HINT:?}" "${DIFF_PY:?}"
 
 # Defines info, warn, die, repo_root, candidate_lock and input_revs.

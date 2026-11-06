@@ -19,11 +19,10 @@
 #
 # The parts:
 #
-#   presets.nix       the presets, as data
-#   presets/          their mise.toml bodies and extra files, verbatim
+#   presets/          one directory per preset, see presets/default.nix
 #   sandbox.nix       --sandbox: devcontainer.json and the attach check
 #   check-sandbox.sh  that attach check
-#   repoconfig.sh     the command
+#   repoconfig.sh     the command, which sources repoconfig.d/ step by step
 #   hint.sh           the prompt hook
 #
 # The scripts are plain shell, given their tools on PATH and their values as
@@ -42,12 +41,12 @@
 
 let
   script = import ../../lib/shell-script.nix { inherit pkgs lib; };
-  preset = import ./presets.nix;
+  preset = import ./presets { inherit lib; };
   sandbox = import ./sandbox.nix { inherit pkgs; };
 
   gitUserName = "Marvin Brouwer";
 
-  presets = lib.attrNames preset.descriptions;
+  presets = lib.attrNames preset;
 
   # One store directory per preset, which repoconfig.sh looks up by name:
   #
@@ -56,10 +55,9 @@ let
   #   <name>/devcontainer.json
   #   <name>/files/...         anything else the preset writes
   presetDir = name:
-    let exts = preset.recommendations.${name};
+    let exts = preset.${name}.recommendations;
     in {
-      "${name}/mise.toml" = pkgs.writeText "mise-${name}.toml"
-        (builtins.readFile ./presets/header.toml + builtins.readFile ./presets/${name}.toml);
+      "${name}/mise.toml" = pkgs.writeText "mise-${name}.toml" preset.${name}.miseToml;
       "${name}/extensions.json" = pkgs.writeText "extensions-${name}.json" (builtins.toJSON {
         recommendations = exts;
         unwantedRecommendations = [ ];
@@ -67,7 +65,7 @@ let
       "${name}/devcontainer.json" = sandbox.devcontainerJson name exts;
     }
     // lib.mapAttrs' (path: src: lib.nameValuePair "${name}/files/${path}" src)
-      (preset.files.${name} or { });
+      preset.${name}.files;
 
   presetsDir = pkgs.linkFarm "repoconfig-presets"
     (lib.foldl' (acc: name: acc // presetDir name) { } presets);
@@ -80,7 +78,7 @@ let
   list = pkgs.writeText "repoconfig-list.txt" ("Presets:\n\n"
     + lib.concatMapStrings (name:
         let pad = lib.concatStrings (lib.genList (_: " ") (8 - lib.stringLength name));
-        in "  ${name}${pad}${preset.descriptions.${name}}\n") presets
+        in "  ${name}${pad}${preset.${name}.description}\n") presets
     + "\n");
 
   repoconfig = script.application {
@@ -96,6 +94,7 @@ let
       PRESET_NAMES = lib.concatStringsSep " " presets;
       SANDBOX_CHECK = sandbox.check;
     };
+    inline.PARTS = ./repoconfig.d;
   };
 
   # Runs before every prompt, so the common case has to cost nothing: an

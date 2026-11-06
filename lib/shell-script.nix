@@ -12,6 +12,12 @@
 # Each script names the variables it expects with `: "${NAME:?}"` near the
 # top, which documents them and stops a run that does not have them.
 #
+# A script split into parts sources them, as `. "$PARTS/name.sh"`, with a
+# `# shellcheck source=` line so `mise run lint` follows them. Nix inlines
+# those lines when it builds the command (`inline` below names what each
+# variable stands for), so the command is still one script, and the build's
+# shellcheck sees all of it too.
+#
 # writeShellApplication also shellchecks the assembled script at build time.
 # Its own `set -o errexit ...` is turned off: each script keeps the options it
 # was written for on its own `set` line, and not all of them want errexit.
@@ -30,10 +36,21 @@ rec {
   assignments = vars: lib.concatStrings (lib.mapAttrsToList
     (name: v: "${name}=${lib.escapeShellArg (value v)}\n") vars);
 
-  application = { name, file, runtimeInputs ? [ ], vars ? { }, excludeShellChecks ? [ ] }:
+  # Replaces each `. "$VAR"` or `. "$VAR/file"` line, for a VAR in `inline`,
+  # with that file's contents. One level deep: a part does not source more.
+  inlineSources = inline: text: lib.concatMapStringsSep "\n" (line:
+    let m = builtins.match ''[[:space:]]*\. "\$([A-Z_]+)(/[^"]*)?"'' line;
+    in if m == null || !(inline ? ${builtins.head m}) then line
+    else
+      let target = inline.${builtins.head m};
+          path = if builtins.elemAt m 1 == null then target else target + builtins.elemAt m 1;
+      in lib.removeSuffix "\n" (builtins.readFile path)
+  ) (lib.splitString "\n" text);
+
+  application = { name, file, runtimeInputs ? [ ], vars ? { }, inline ? { }, excludeShellChecks ? [ ] }:
     pkgs.writeShellApplication {
       inherit name runtimeInputs excludeShellChecks;
       bashOptions = [ ];
-      text = assignments vars + builtins.readFile file;
+      text = assignments vars + inlineSources inline (builtins.readFile file);
     };
 }

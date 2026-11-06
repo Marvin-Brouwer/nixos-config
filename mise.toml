@@ -12,4 +12,4 @@
 # locked nixpkgs, so there is still no tool to install or pin here.
 [tasks.lint]
 description = "shellcheck the scripts under programs/"
-run = "nix shell --inputs-from . nixpkgs#shellcheck --command shellcheck --source-path=SCRIPTDIR programs/*/*.sh"
+run = "nix shell --inputs-from . nixpkgs#shellcheck --command shellcheck --external-sources --source-path=SCRIPTDIR programs/*/*.sh"

@@ -30,17 +30,19 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   │   ├─ mise.toml                # installed to /etc/mise/config.toml
 │   │   ├─ repoconfig/              # one-shot repo setup command, and its hint
 │   │   │   ├─ default.nix          #   wiring, and what each part is for
-│   │   │   ├─ presets.nix          #   the presets, as data
-│   │   │   ├─ presets/             #   their mise.toml bodies and extra files
+│   │   │   ├─ presets/             #   one directory per preset
 │   │   │   ├─ sandbox.nix          #   --sandbox: the dev container
+│   │   │   ├─ repoconfig.d/        #   the command's steps, sourced in order
 │   │   │   └─ *.sh                 #   the command, prompt hook, attach check
 │   │   ├─ sysupdate/               # update command, check, shell notice
 │   │   │   ├─ default.nix
 │   │   │   ├─ *.sh                 #   one script per command, plus helpers
+│   │   │   ├─ sysupdate.d/         #   sysupdate's steps, sourced in order
 │   │   │   └─ diff.py              #   the closure diff behind the notice
 │   │   ├─ vscode/                  # the plugin sync command
 │   │   │   ├─ default.nix
 │   │   │   ├─ sync.sh
+│   │   │   ├─ sync.d/              #   its steps, sourced in order
 │   │   │   └─ extensions-json.py   #   reads a JSONC extensions.json
 │   │   └─ vscode-plugins.nix       # my base plugin list
 │   ├─ tools/

@@ -17,6 +17,7 @@
 # Three commands come out of this directory, each its own script:
 #
 #   sysupdate         sysupdate.sh  bump inputs, build, diff, apply or stage
+#                     (its steps are sysupdate.d/, sourced in order)
 #   sysupdate-check   check.sh      the background job, run by a systemd timer
 #   sysupdate-notice  notice.sh     prints the cached result on shell start
 #
@@ -53,7 +54,6 @@ let
   # What both scripts that source helpers.sh need, for it and for themselves.
   shared = {
     STATE_DIR = stateDir;
-    HELPERS = ./helpers.sh;
     HOST_NAME = hostName;
     PREFIX = prefix;
     REBOOT_HINT = rebootHint;
@@ -64,9 +64,7 @@ let
     name = "sysupdate-check";
     file = ./check.sh;
     runtimeInputs = with pkgs; [ coreutils git nix jq gnugrep python ];
-    # helpers.sh is sourced from the store, where the build's shellcheck
-    # cannot follow it. `mise run lint` does.
-    excludeShellChecks = [ "SC1091" ];
+    inline.HELPERS = ./helpers.sh;
     vars = shared // {
       # Names the notice is allowed to spell out, from the same list that builds
       # environment.systemPackages, so the two cannot drift apart.
@@ -94,7 +92,10 @@ let
     runtimeInputs = with pkgs; [
       coreutils git nix jq gnused nvd vulnix nixos-rebuild python notice
     ];
-    excludeShellChecks = [ "SC1091" ];
+    inline = {
+      HELPERS = ./helpers.sh;
+      PARTS = ./sysupdate.d;
+    };
     vars = shared // {
       IS_WSL = if isWsl then "1" else "";
     };

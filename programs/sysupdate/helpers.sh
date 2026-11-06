@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# Shared by sysupdate.sh and check.sh, which source it, so it runs with their
-# PATH and variables.
+# Shared by sysupdate.sh and check.sh. Inlined into both at build time, so it
+# runs with their PATH and variables.
 
 info() { printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[WARN]\033[0m %s\n' "$*"; }

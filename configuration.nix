@@ -39,6 +39,7 @@ let
 
   vscode = import ./programs/vscode.nix { inherit pkgs lib; };
   repoconfig = import ./programs/repoconfig.nix { inherit pkgs lib; };
+  devhelp = import ./programs/devhelp.nix { inherit pkgs; };
   playwright = import ./tools/playwright.nix { inherit pkgs lib; };
   sysupdate = import ./programs/sysupdate.nix {
     inherit pkgs lib hostName isWsl;
@@ -72,7 +73,11 @@ in
     vscode
 
     # One-shot repo setup: git identity, mise.toml, trust, lockfile, plugins.
-    repoconfig
+    # The hint that names it on entering a repo is in the shell init below.
+    repoconfig.repoconfig
+
+    # The list of the commands above, for when their names will not come.
+    devhelp
 
     # Break-glass FHS sandbox for when nix-ld does not cover a browser.
     playwright
@@ -145,6 +150,10 @@ in
     # you and the prompt. It nags on every new shell until you deal with it,
     # which is the point -- this box lives in WSL and is easy to forget.
     ${sysupdate.notice}/bin/sysupdate-notice
+
+    # Names `repoconfig` when you cd into a repo it has not been run in. See
+    # programs/repoconfig.nix.
+    ${repoconfig.shellInit}
   '';
 
   # Pending system updates.

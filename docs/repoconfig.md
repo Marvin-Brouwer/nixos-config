@@ -10,6 +10,13 @@ repoconfig ts me@example.com
 The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
 `mise.toml` and `.vscode/extensions.json`.
 
+Entering a git repo without a `mise.toml` prints the command, so the name does
+not have to be remembered. It is a bash prompt hook rather than a git hook: git
+has no post-clone hook, and the template-dir `post-checkout` workaround copies a
+hook into every clone and still misses repos cloned before it. It fires once per
+visit, and `git config --local repoconfig.skip true` silences it for a repo.
+`devhelp` lists every command this setup adds.
+
 ## What it does
 
 Local work first, network last, so an interrupted run still leaves a usable repo.

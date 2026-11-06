@@ -25,8 +25,9 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 │   ├─ lib/
 │   │   └─ nix-ld-libs.nix          # libraries that let vendor binaries run
 │   ├─ programs/
+│   │   ├─ devhelp.nix              # lists the commands below
 │   │   ├─ mise.toml                # installed to /etc/mise/config.toml
-│   │   ├─ repoconfig.nix           # one-shot repo setup command
+│   │   ├─ repoconfig.nix           # one-shot repo setup command, and its hint
 │   │   ├─ sysupdate.nix            # update command, check, shell notice
 │   │   ├─ sysupdate-diff.py        # the closure diff behind the notice
 │   │   ├─ vscode.nix               # the plugin sync command
@@ -67,6 +68,17 @@ wsl
 cd ~/repos/my-project
 repoconfig ts me@example.com
 ```
+
+You do not have to remember the name. Entering a git repo that has no
+`mise.toml` prints it:
+
+```txt
+This repo is not set up yet, run: repoconfig <empty|ts|dotnet> <email>
+   (devhelp lists every command on this machine)
+```
+
+`devhelp` lists every command this setup adds. For a repo you deliberately leave
+alone, `git config --local repoconfig.skip true` silences the hint there.
 
 The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
 `mise.toml` and `.vscode/extensions.json`. Everything else is the same:

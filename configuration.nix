@@ -76,7 +76,7 @@ let
       config = {
         package = configCommand;
         summary = "build this config's checked-out branch, or update to main";
-        usage = "config <build [dir]|update>";
+        usage = "config <build|update>";
         complete = [ "build" "update" ];
       };
       compact = {

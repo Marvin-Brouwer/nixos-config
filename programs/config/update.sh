@@ -61,7 +61,7 @@ main() {
   stop_if_unchanged
   list_new_commits
 
-  "$BUILD" "$REPO" || exit
+  "$BUILD" || exit
   refresh_update_notice
 }
 

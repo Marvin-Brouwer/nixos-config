@@ -2,26 +2,10 @@
 # Part of build.sh, inlined into it at build time.
 # Which checkout to build, and what is in it.
 
-# A NixOS config for this host, as opposed to any other repo with a flake.
-is_config_checkout() { # directory
-  [ -f "$1/flake.nix" ] && grep -q "nixosConfigurations\.$HOST_NAME\b" "$1/flake.nix"
-}
-
-# Sets CHECKOUT: the directory given, else the repo you are in when it is a
-# config checkout, which is what makes a branch or a second clone work like
-# `.#host` does, else /etc/nixos.
-find_checkout() { # [directory]
-  local here
-  if [ -n "$1" ]; then
-    CHECKOUT=$(git -C "$1" rev-parse --show-toplevel 2>/dev/null) \
-      || die "$1 is not a git repository"
-  elif here=$(git rev-parse --show-toplevel 2>/dev/null) && is_config_checkout "$here"; then
-    CHECKOUT=$here
-  else
-    CHECKOUT=$(repo_root) || die "/etc/nixos does not resolve to a git repository"
-  fi
-  is_config_checkout "$CHECKOUT" \
-    || die "$CHECKOUT has no nixosConfigurations.$HOST_NAME in its flake.nix"
+# Sets CHECKOUT: always the one /etc/nixos points at, which is the checkout
+# the machine is built from, on whatever branch it is on.
+find_checkout() {
+  CHECKOUT=$(repo_root) || die "/etc/nixos does not resolve to a git repository"
 }
 
 describe_checkout() {

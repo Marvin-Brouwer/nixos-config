@@ -12,8 +12,8 @@ usage() {
   cat <<USAGE
 usage: $PREFIX config <build|update> [args...]
 
-  build [dir]  build the checked-out branch of this config and switch to it
-  update       back to main: pull it, and build when that changed anything
+  build   build the checked-out branch of this config and switch to it
+  update  back to main: pull it, and build when that changed anything
 
 '$PREFIX config <subcommand> --help' for details. See docs/config.md.
 USAGE

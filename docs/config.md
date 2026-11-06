@@ -3,9 +3,8 @@
 Two commands for working on this repo itself:
 
 ```bash
-rig config build                    # build the checked-out branch and switch to it
-rig config build ~/nixos-config-wt  # the same for a specific checkout
-rig config update                   # back to main, pull it, build if that changed anything
+rig config build   # build the checked-out branch and switch to it
+rig config update  # back to main, pull it, build if that changed anything
 ```
 
 `build` is for trying a branch. `update` is the way back afterwards, and the
@@ -18,10 +17,9 @@ themselves, use `rig sysupdate`, see [sysupdate.md](sysupdate.md).
 `sudo nixos-rebuild switch --flake .#nix-wsl` without having to remember it,
 plus a diff before it switches. In order:
 
-1. Picks the checkout: the directory you gave, else the git repo you're in when
-   its `flake.nix` defines `nixosConfigurations.nix-wsl`, else the one
-   `/etc/nixos` points at. It says which one, the branch and the commit, and
-   whether there are uncommitted changes.
+1. Builds the checkout `/etc/nixos` points at (`~/nixos-config`), wherever
+   you run it from. It says which branch and commit, and whether there are
+   uncommitted changes.
 2. Warns about untracked files. A flake in a git repo only sees tracked files,
    so a new `.nix` file you haven't `git add`ed is silently not there.
 3. Builds the system as you, with `nix build`, outside the checkout. A failed

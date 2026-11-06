@@ -28,7 +28,7 @@ let
     name = "config-build";
     file = ./build.sh;
     # sudo is the system's setuid wrapper, so it comes from your PATH.
-    runtimeInputs = with pkgs; [ coreutils git nix nvd nixos-rebuild gnugrep ];
+    runtimeInputs = with pkgs; [ coreutils git nix nvd nixos-rebuild ];
     inline = {
       HIGHLIGHT = highlight;
       CONFIG_REPO = configRepo;

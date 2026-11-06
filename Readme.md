@@ -88,7 +88,7 @@ wsl
 ```
 
 Without the sparse flag the `.vhdx` only ever grows: space freed inside WSL,
-by `rig compact` for instance, stays allocated on the Windows side. It can only
+by `rig sys compact` for instance, stays allocated on the Windows side. It can only
 be set while WSL is shut down, so `setup.sh` prints it rather than running it,
 with your distro's name filled in. To have every new distro start out sparse,
 put this in `%UserProfile%\.wslconfig` before importing:
@@ -98,7 +98,7 @@ put this in `%UserProfile%\.wslconfig` before importing:
 sparseVhd=true
 ```
 
-`rig doctor` warns if the disk isn't sparse, so you'll hear about it if this
+`rig sys doctor` warns if the disk isn't sparse, so you'll hear about it if this
 step was skipped.
 
 ## One prefix for everything
@@ -107,15 +107,19 @@ Every command this setup adds lives under `rig`, so there is one name to
 remember:
 
 ```bash
-rig --help                 # every command, one line each
-rig repoconfig --help      # that command's own help page
-rig repoconfig --list      # the presets
-rig sysupdate              # see and apply system updates
-rig compact                # free disk space, see docs/compact.md
-rig doctor                 # something is off? see docs/doctor.md
-rig scratch ts             # a throwaway repo, see docs/scratch.md
-rig config build           # build this checkout's branch and switch to it
-rig config update          # back to main, pull, rebuild if anything changed
+rig --help                # the groups: config, repo, sys, tool
+rig repo --help           # what is in one group
+rig repo init --help      # one command's own help page
+rig repo init --list      # the presets
+rig sys update            # see and apply system updates
+rig sys compact           # free disk space, see docs/compact.md
+rig sys doctor            # something is off? see docs/doctor.md
+rig repo scratch ts       # a throwaway repo, see docs/scratch.md
+rig config build          # build this checkout's branch and switch to it
+rig config update         # back to main, pull, rebuild if anything changed
+rig tool vscode-sync      # re-check this repo's VSCode plugins
+rig tool playwright       # FHS sandbox for browsers
+rig tool docker stop      # stop the Docker daemon to free memory
 ```
 
 Claude Code knows them too. The config installs a user skill at
@@ -130,7 +134,7 @@ The prefix itself is `devPrefix` in `configuration.nix`.
 
 ```bash
 cd ~/repos/my-project
-rig repoconfig ts me@example.com
+rig repo init ts me@example.com
 ```
 
 The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
@@ -155,7 +159,7 @@ You do not have to remember the name. Entering a git repo that has no
 `mise.toml` prints it:
 
 ```txt
-This repo is not set up yet, run: `rig repoconfig <dotnet|empty|ts> <email>`
+This repo is not set up yet, run: `rig repo init <dotnet|empty|ts> <email>`
    (`rig --help` lists every command on this machine)
 ```
 
@@ -169,7 +173,7 @@ bumps it when you decide to.
 > [!IMPORTANT]
 > mise never creates `mise.lock` itself. It only maintains one that already
 > exists, and says nothing when there is none, so a repo without the file
-> silently gets no version pinning at all. That is the main thing `rig repoconfig`
+> silently gets no version pinning at all. That is the main thing `rig repo init`
 > is for. By hand it is `touch mise.lock && mise install && mise lock`.
 
 > [!NOTE]
@@ -189,15 +193,15 @@ You have pending system updates!
    ...
  + 143 other packages in the system closure
 
- run `rig sysupdate` to update
+ run `rig sys update` to update
 ```
 
 ```bash
-rig sysupdate          # bump the inputs, build, show the diff, apply or stage
-rig sysupdate --audit  # scan the running system for known vulnerabilities
+rig sys update          # bump the inputs, build, show the diff, apply or stage
+rig sys update --audit  # scan the running system for known vulnerabilities
 ```
 
-`rig sysupdate` asks about `nixpkgs` and `nixos-wsl` separately, builds the new
+`rig sys update` asks about `nixpkgs` and `nixos-wsl` separately, builds the new
 system without touching the running one, shows `nvd diff` for the exact old to
 new versions, and then asks: apply now, stage for the next start, or discard.
 Applying is `nixos-rebuild switch`; staging is `nixos-rebuild boot`, which takes
@@ -220,18 +224,18 @@ guessing when the tree is dirty or `main` has diverged. See
 
 ## Housekeeping
 
-`rig compact` removes system generations older than 14 days, the store paths
+`rig sys compact` removes system generations older than 14 days, the store paths
 nothing uses any more, Docker's leftovers and mise tool versions no project asks
 for, then trims the disk so the WSL `.vhdx` can shrink. It shows what it would
 remove and asks first. A daily timer measures whether a run is worth it, and
 when it is, new shells say so, but only when sysupdate has nothing to say. See
 [docs/compact.md](docs/compact.md).
 
-`rig doctor` checks every piece this setup depends on (nix-ld, interop, Docker,
+`rig sys doctor` checks every piece this setup depends on (nix-ld, interop, Docker,
 mise, the timers, the repo you're in) and says per piece whether it's fine and
 what to do if not. See [docs/doctor.md](docs/doctor.md).
 
-`rig scratch [preset]` makes a temp repo, runs repoconfig in it and drops you in
+`rig repo scratch [preset]` makes a temp repo, runs repoconfig in it and drops you in
 a shell there. Leaving the shell offers to delete it. See
 [docs/scratch.md](docs/scratch.md).
 
@@ -247,8 +251,8 @@ Then anything in that file's `unwantedRecommendations` is removed, and the resul
 is installed on both the Windows and WSL sides.
 
 ```bash
-rig vscode-sync          # force a re-check, in the foreground
-rig vscode-sync --wait   # wait for one the mise hook started
+rig tool vscode-sync          # force a re-check, in the foreground
+rig tool vscode-sync --wait   # wait for one the mise hook started
 ```
 
 Entering a project runs the sync in the foreground, so it prints what it did and
@@ -256,7 +260,7 @@ you wait for it. Most entries hit the hash fast path and return instantly; it
 only blocks when the plugin set actually changed, which with one shared set means
 when you move between repos that want different plugins.
 
-`rig vscode-sync --detach` is the alternative. It backgrounds the sync and writes to
+`rig tool vscode-sync --detach` is the alternative. It backgrounds the sync and writes to
 `~/.config/nixos-vscode-sync/last.log` instead of printing, because a background
 job writing over a prompt that has already been drawn leaves the shell looking
 hung until you press enter.
@@ -279,7 +283,7 @@ hung until you press enter.
 > Creating one means opening a window, which a `cd` has no business doing.
 
 The sync only runs inside a trusted mise project, so a repo needs a `mise.toml`
-and one `mise trust` first. `rig repoconfig` does both.
+and one `mise trust` first. `rig repo init` does both.
 
 ## Why vendor binaries run at all
 

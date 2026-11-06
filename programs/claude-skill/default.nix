@@ -8,19 +8,18 @@
 # so adding a command or a doc page updates the skill with no edit here.
 # -----------------------------------------------------------------
 
-{ pkgs, lib, prefix, commands, docs }:
+{ pkgs, lib, prefix, leaves, docs }:
 
 let
   # A list rather than a table: usage lines hold |, which splits a table cell
   # even inside backticks.
-  entry = name: let c = commands.${name}; in
-    "- `${prefix} ${name}`: ${c.summary}. Usage: `${prefix} ${c.usage}`\n";
+  entry = c: "- `${c.invocation}`: ${c.summary}. Usage: `${c.usage}`\n";
 
   commandList = ''
 
     ## Commands
 
-  '' + lib.concatMapStrings entry (lib.attrNames commands);
+  '' + lib.concatMapStrings entry leaves;
 
   # Every .md under docs/, one level of subdirectories deep, as paths in the
   # checkout, which is where Claude reads them.

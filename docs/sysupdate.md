@@ -3,7 +3,7 @@
 One command to see what a system update would change, and apply it.
 
 ```bash
-rig sysupdate
+rig sys update
 ```
 
 Plus a notice on every interactive shell, so you find out without asking:
@@ -19,7 +19,7 @@ You have pending system updates!
  + 143 other packages in the system closure
  + nixos-wsl module: d57af92 -> 9e8d7c6
 
- run `rig sysupdate` to update
+ run `rig sys update` to update
 ```
 
 The package name turns red once an update has been pending for two weeks. The
@@ -29,10 +29,10 @@ this box lives in WSL and is easy to forget.
 ## What it does
 
 ```txt
-rig sysupdate            update the inputs, build, show the diff, apply or stage
-rig sysupdate --status   reprint the cached notice
-rig sysupdate --check    run the background check now
-rig sysupdate --audit    scan the running system for known vulnerabilities
+rig sys update            update the inputs, build, show the diff, apply or stage
+rig sys update --status   reprint the cached notice
+rig sys update --check    run the background check now
+rig sys update --audit    scan the running system for known vulnerabilities
 ```
 
 The main flow, in order:
@@ -81,7 +81,7 @@ That is a change for the day a second machine exists, not before.
 > There is no meaningful reboot in WSL. NixOS does not supply the kernel,
 > Microsoft does, so kernel updates do not apply and `allowReboot` is the wrong
 > option. `nixos-rebuild switch` activates in place and covers nearly
-> everything. Off WSL that is not true, so `rig sysupdate` compares the booted
+> everything. Off WSL that is not true, so `rig sys update` compares the booted
 > kernel with the activated one and tells you when a reboot is still needed.
 
 ## Why the check has to be a background job
@@ -101,7 +101,7 @@ eval.
 What it actually does:
 
 - computes an updated lock with `--output-lock-file`, so it can look at the
-  newest inputs while leaving `flake.lock` untouched. Only `rig sysupdate` writes
+  newest inputs while leaving `flake.lock` untouched. Only `rig sys update` writes
   the lock.
 - instantiates the new system and reads its *derivation* closure. A `.drv` is
   enough to know a package's version, so nothing is downloaded or built.
@@ -120,7 +120,7 @@ owned by somebody else, which is exactly what a root-run check would hit.
 > and the running side a runtime one, so a name that appears on one side only --
 > a package added, one dropped, a compiler that is only ever a build
 > dependency -- has nothing to compare against and is left out. The full
-> picture is the `nvd diff` that `rig sysupdate` shows you.
+> picture is the `nvd diff` that `rig sys update` shows you.
 
 ## Why there is no per-package update
 
@@ -132,7 +132,7 @@ of hundred lines, and none of them are individually actionable.
 
 ## vulnix
 
-`rig sysupdate --audit` runs `vulnix --system`, which scans the system closure
+`rig sys update --audit` runs `vulnix --system`, which scans the system closure
 against NVD. It answers whether being behind actually matters this time, rather
 than only how long it has been.
 

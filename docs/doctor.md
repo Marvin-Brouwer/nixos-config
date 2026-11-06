@@ -3,7 +3,7 @@
 One command for "something is off":
 
 ```bash
-rig doctor
+rig sys doctor
 ```
 
 It checks each piece this setup depends on and prints `ok`, `warn` or `FAIL`,
@@ -34,7 +34,7 @@ waiting for a symptom.
 - the running system is the newest built one, not a staged update waiting for
   a restart
 - no failed systemd units
-- disk use, warning at 80% and failing at 90%, with `rig compact` as the fix
+- disk use, warning at 80% and failing at 90%, with `rig sys compact` as the fix
 - the sysupdate and compact checks ran in the last three days, and the last
   update check didn't fail
 
@@ -44,7 +44,7 @@ waiting for a symptom.
 - Windows binaries are on PATH and actually run. Without interop, `code .` and
   the Windows half of `vscode-sync` fail with errors that don't mention it.
 - `code` is reachable
-- the virtual disk is sparse, so space `rig compact` frees goes back to Windows
+- the virtual disk is sparse, so space `rig sys compact` frees goes back to Windows
   (see [compact](compact.md))
 
 **Tools**

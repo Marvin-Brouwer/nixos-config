@@ -110,7 +110,7 @@ render_notice() {
     --inputs "$TMP/inputs.json" \
     --state-dir "$STATE_DIR" \
     --reboot-hint "$REBOOT_HINT" \
-    --command "$PREFIX sysupdate" || fail "could not render the notice"
+    --command "$PREFIX sys update" || fail "could not render the notice"
 }
 
 main() {

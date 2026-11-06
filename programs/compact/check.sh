@@ -56,13 +56,13 @@ write_notice() {
     echo "This machine could use a clean-up:"
     printf ' - %s\n' "${reasons[@]}"
     echo
-    echo " run \`$PREFIX compact --yes\` to reclaim it"
+    echo " run \`$PREFIX sys compact --yes\` to reclaim it"
   } > "$STATE_DIR/status.txt.tmp"
 
   {
     printf '\033[1;33mThis machine could use a clean-up:\033[0m\n'
     printf ' - %s\n' "${reasons[@]}"
-    printf '\n %s\n' "$(highlight "run \`$PREFIX compact --yes\` to reclaim it")"
+    printf '\n %s\n' "$(highlight "run \`$PREFIX sys compact --yes\` to reclaim it")"
   } > "$STATE_DIR/status.ansi.tmp"
 
   mv "$STATE_DIR/status.txt.tmp" "$STATE_DIR/status.txt"

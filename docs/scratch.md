@@ -4,13 +4,13 @@ A throwaway repo for trying something out in thirty seconds, without first
 deciding where it should live:
 
 ```bash
-rig scratch ts       # temp repo, ts preset, a shell in it
-rig scratch          # the empty preset
-rig scratch ts --keep
+rig repo scratch ts       # temp repo, ts preset, a shell in it
+rig repo scratch          # the empty preset
+rig repo scratch ts --keep
 ```
 
 It runs `git init` in a new directory under `/tmp/scratch/`, then
-`rig repoconfig <preset> scratch@localhost` in it, then opens your own shell
+`rig repo init <preset> scratch@localhost` in it, then opens your own shell
 there, so your prompt and the mise hook come along. When you `exit`, it asks
 whether to delete the directory. The default is yes. `--keep` skips the
 question and keeps it.

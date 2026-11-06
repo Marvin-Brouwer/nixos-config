@@ -8,7 +8,7 @@ check_repo() {
   root=$(git rev-parse --show-toplevel)
 
   if [ ! -f "$root/mise.toml" ] && [ ! -f "$root/.mise.toml" ]; then
-    warn "not set up" "\`$PREFIX repoconfig <preset> <email>\`"
+    warn "not set up" "\`$PREFIX repo init <preset> <email>\`"
     return
   fi
 
@@ -22,7 +22,7 @@ check_repo() {
   if [ -n "$(git -C "$root" config --local user.email)" ]; then
     ok "git identity is set for this repo"
   else
-    warn "no local git identity" "\`$PREFIX repoconfig <preset> <email>\`"
+    warn "no local git identity" "\`$PREFIX repo init <preset> <email>\`"
   fi
 
   command -v mise >/dev/null || return 0

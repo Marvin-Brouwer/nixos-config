@@ -188,12 +188,12 @@ main() {
   echo "    wsl"
   echo
   echo "The middle line makes the virtual disk sparse, so space freed inside WSL"
-  echo "(rig compact) goes back to Windows. It only works while WSL is shut down,"
+  echo "(rig sys compact) goes back to Windows. It only works while WSL is shut down,"
   echo "which is why it is here and not in this script. Running it again is harmless."
   echo
   echo "After restart, set a project up with one command:"
   echo "    cd ~/repos/my-project"
-  echo "    rig repoconfig ts you@example.com     # or: empty, dotnet"
+  echo "    rig repo init ts you@example.com     # or: empty, dotnet"
   echo
   echo "That writes mise.toml, mise.lock and .vscode/extensions.json, trusts the"
   echo "config, and syncs your VSCode plugins. What it does and why:"

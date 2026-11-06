@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------
-# The presets: what `rig repoconfig <preset>` writes into a repo.
+# The presets: what `rig repo init <preset>` writes into a repo.
 #
 # One directory per preset, found by listing this one, so adding a preset is
 # adding a directory:

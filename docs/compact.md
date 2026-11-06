@@ -7,10 +7,10 @@ In WSL the distro also lives in a `.vhdx` that grows and never shrinks unless
 it's sparse and the freed blocks are trimmed.
 
 ```bash
-rig compact          # show what would go, ask, remove it, report what came back
-rig compact --yes    # the same without asking
-rig compact --check  # measure now and print the notice, removing nothing
-rig compact --status # reprint the cached notice
+rig sys compact          # show what would go, ask, remove it, report what came back
+rig sys compact --yes    # the same without asking
+rig sys compact --check  # measure now and print the notice, removing nothing
+rig sys compact --status # reprint the cached notice
 ```
 
 ## What it removes
@@ -33,7 +33,7 @@ means you can't roll back to it, so the run asks first and says how many.
 ## Getting the space back to Windows
 
 Freeing blocks inside ext4 doesn't shrink the `.vhdx`. Two things have to
-happen. The freed blocks need to be discarded, which `rig compact` does at the
+happen. The freed blocks need to be discarded, which `rig sys compact` does at the
 end with `fstrim`. And the disk needs to be sparse, so Windows actually hands
 the discarded blocks back. That's set once, from Windows:
 
@@ -45,11 +45,11 @@ wsl --manage NixOS --set-sparse true
 Use the distro name from `wsl -l`. `setup.sh` prints this after installing,
 and `sparseVhd=true` under `[experimental]` in `%UserProfile%\.wslconfig`
 makes new distros sparse from the start; see the Readme's Install section. You don't have to remember whether you did
-this: nothing inside the distro can see the flag, so `rig compact` asks Windows
+this: nothing inside the distro can see the flag, so `rig sys compact` asks Windows
 (PowerShell through interop reads the distro's `.vhdx` location from the `Lxss`
 registry key and checks the file's sparse attribute, no admin needed). It only
 prints the commands above when the answer is no, or when it got no answer.
-`rig doctor` asks the same question and warns when the disk isn't sparse.
+`rig sys doctor` asks the same question and warns when the disk isn't sparse.
 
 The timer doesn't ask: a systemd unit has no WSL session, so it doesn't know
 which distro it is in.
@@ -64,7 +64,7 @@ This machine could use a clean-up:
  - 7.2GiB of unused store paths
  - 12 system generations older than 14 days
 
- run `rig compact --yes` to reclaim it
+ run `rig sys compact --yes` to reclaim it
 ```
 
 It shows when either of these is true:
@@ -80,5 +80,5 @@ generation to clean up anyway.
 The check runs as `compact-check.service`, 10 minutes after boot and daily
 after that, at idle priority because listing dead store paths walks the whole
 store. A stamp file in `/var/lib/compact` limits it to once a day, because
-timer state doesn't survive a WSL shutdown. `rig compact` clears the notice
+timer state doesn't survive a WSL shutdown. `rig sys compact` clears the notice
 after a run.

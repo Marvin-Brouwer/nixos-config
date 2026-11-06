@@ -38,7 +38,7 @@ let
   ];
 
   # The one command this repo puts on PATH. Everything below is reached through
-  # it (`rig sysupdate`, `rig repoconfig ...`), so there is a single name to
+  # it (`rig sys update`, `rig repo init ...`), so there is a single name to
   # remember and `rig --help` to fall back on. Renaming it is this one string.
   devPrefix = "rig";
 
@@ -55,64 +55,95 @@ let
     inherit pkgs lib;
     prefix = devPrefix;
     commands = {
-      repoconfig = {
-        package = repoconfig.repoconfig;
-        summary = "set up the git repo you are in, once after cloning";
-        usage = "repoconfig <preset> <email>, --list for presets";
-        complete = [ "--list" ] ++ repoconfig.presets;
+      sys = {
+        summary = "the machine itself: updates, disk space, health";
+        commands = {
+          update = {
+            package = sysupdate.sysupdate;
+            summary = "see pending system updates and apply or stage them";
+            usage = "[--status|--check|--audit]";
+            complete = [ "--status" "--check" "--audit" ];
+          };
+          compact = {
+            package = compact.compact;
+            summary = "free disk space: old generations, Docker, unused mise tools";
+            usage = "[--yes|--status|--check]";
+            complete = [ "--yes" "--status" "--check" ];
+          };
+          doctor = {
+            package = doctor;
+            summary = "check every piece this setup leans on, when something is off";
+            usage = "";
+          };
+        };
       };
-      sysupdate = {
-        package = sysupdate.sysupdate;
-        summary = "see pending system updates and apply or stage them";
-        usage = "sysupdate [--status|--check|--audit]";
-        complete = [ "--status" "--check" "--audit" ];
-      };
-      vscode-sync = {
-        package = vscode;
-        summary = "sync VSCode plugins for this repo (runs on entering one)";
-        usage = "vscode-sync [--wait|--detach]";
-        complete = [ "--wait" "--detach" ];
+      repo = {
+        summary = "the git repo you are in, or a throwaway one";
+        commands = {
+          init = {
+            package = repoconfig.repoconfig;
+            summary = "set up the git repo you are in, once after cloning";
+            usage = "<preset> <email>, --list for presets";
+            complete = [ "--list" ] ++ repoconfig.presets;
+          };
+          scratch = {
+            package = scratch;
+            summary = "a throwaway repo with a preset, and a shell in it";
+            usage = "[preset] [--keep]";
+            complete = [ "--keep" ] ++ repoconfig.presets;
+          };
+        };
       };
       config = {
-        package = configCommand;
-        summary = "build this config's checked-out branch, or update to main";
-        usage = "config <build|update>";
-        complete = [ "build" "update" ];
+        summary = "this nixos-config repo: try a branch, or go back to main";
+        commands = {
+          build = {
+            package = configCommand.build;
+            summary = "build the checked-out branch of this config and switch to it";
+            usage = "";
+          };
+          update = {
+            package = configCommand.update;
+            summary = "back to main: pull it, and build when that changed anything";
+            usage = "";
+          };
+        };
       };
-      compact = {
-        package = compact.compact;
-        summary = "free disk space: old generations, Docker, unused mise tools";
-        usage = "compact [--yes|--status|--check]";
-        complete = [ "--yes" "--status" "--check" ];
-      };
-      doctor = {
-        package = doctor;
-        summary = "check every piece this setup leans on, when something is off";
-        usage = "doctor";
-      };
-      scratch = {
-        package = scratch;
-        summary = "a throwaway repo with a preset, and a shell in it";
-        usage = "scratch [preset] [--keep]";
-        complete = [ "--keep" ] ++ repoconfig.presets;
-      };
-      playwright = {
-        package = playwright;
-        bin = "playwright-fhs";
-        summary = "FHS sandbox for browsers nix-ld does not cover";
-        usage = "playwright [-c 'command']";
-        # The sandbox runs bash, so --help would be bash's.
-        help = ''
-          usage: ${devPrefix} playwright [-c 'command']
+      tool = {
+        summary = "helpers for the tools projects use";
+        commands = {
+          vscode-sync = {
+            package = vscode;
+            summary = "sync VSCode plugins for this repo (runs on entering one)";
+            usage = "[--wait|--detach]";
+            complete = [ "--wait" "--detach" ];
+          };
+          docker = {
+            package = dockerDaemon;
+            summary = "stop the Docker daemon to free memory, or see if it runs";
+            usage = "<stop|status>";
+            complete = [ "stop" "status" ];
+          };
+          playwright = {
+            package = playwright;
+            bin = "playwright-fhs";
+            summary = "FHS sandbox for browsers nix-ld does not cover";
+            usage = "[-c 'command']";
+            # The sandbox runs bash, so --help would be bash's.
+            help = ''
+              usage: ${devPrefix} tool playwright [-c 'command']
 
-          Opens a bash shell in an FHS sandbox with the browser libraries, mise,
-          node and pnpm, for when nix-ld is not enough for a browser. Arguments
-          go to that bash, so -c 'pnpm exec playwright test' runs one command
-          and exits.
-        '';
+              Opens a bash shell in an FHS sandbox with the browser libraries, mise,
+              node and pnpm, for when nix-ld is not enough for a browser. Arguments
+              go to that bash, so -c 'pnpm exec playwright test' runs one command
+              and exits.
+            '';
+          };
+        };
       };
     };
   };
+  dockerDaemon = import ./programs/docker { inherit pkgs lib; prefix = devPrefix; };
   playwright = import ./tools/playwright.nix { inherit pkgs lib; };
   sysupdate = import ./programs/sysupdate {
     inherit pkgs lib hostName isWsl;
@@ -147,7 +178,7 @@ let
   # What Claude Code knows about this machine, from the same list as rig --help.
   claudeSkill = import ./programs/claude-skill {
     inherit pkgs lib;
-    inherit (rig) commands;
+    inherit (rig) leaves;
     prefix = devPrefix;
     docs = ./docs;
   };

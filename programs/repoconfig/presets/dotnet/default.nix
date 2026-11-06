@@ -1,4 +1,4 @@
-# `rig repoconfig dotnet`: the .NET SDK, with NuGet lock files.
+# `rig repo init dotnet`: the .NET SDK, with NuGet lock files.
 {
   description = "latest .NET SDK; C# plugin; NuGet lock files; setup task runs dotnet restore";
 

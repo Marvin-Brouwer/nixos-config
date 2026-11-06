@@ -9,8 +9,8 @@ rig config update  # back to main, pull it, build if that changed anything
 
 `build` is for trying a branch. `update` is the way back afterwards, and the
 way to pick up a change made elsewhere, such as a `flake.lock` bump
-`rig sysupdate` pushed from another machine. For updating the flake inputs
-themselves, use `rig sysupdate`, see [sysupdate.md](sysupdate.md).
+`rig sys update` pushed from another machine. For updating the flake inputs
+themselves, use `rig sys update`, see [sysupdate.md](sysupdate.md).
 
 ## `rig config build`
 

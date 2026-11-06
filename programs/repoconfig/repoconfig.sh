@@ -58,7 +58,7 @@ find_preset() {
   for name in "${presets[@]}"; do
     [ "$name" = "$PRESET" ] && PRESET_DIR="$PRESETS_DIR/$name"
   done
-  [ -n "$PRESET_DIR" ] || die "$USAGE (presets: \`$PREFIX repoconfig --list\`)"
+  [ -n "$PRESET_DIR" ] || die "$USAGE (presets: \`$PREFIX repo init --list\`)"
   MISE_SRC="$PRESET_DIR/mise.toml"
   EXT_SRC="$PRESET_DIR/extensions.json"
   DEVCONTAINER_SRC="$PRESET_DIR/devcontainer.json"

@@ -12,7 +12,7 @@ Every file a C# project uses to declare what it needs, and who reads it.
 | `**/packages.lock.json` | the exact resolved packages, with hashes | NuGet restore |
 | `.vscode/extensions.json` | the project's plugins | VSCode natively |
 
-Start with `rig repoconfig dotnet you@example.com`, which writes `mise.toml`,
+Start with `rig repo init dotnet you@example.com`, which writes `mise.toml`,
 `mise.lock`, `Directory.Build.props` and `.vscode/extensions.json`.
 
 ## mise.toml
@@ -40,7 +40,7 @@ run = ["dotnet restore"]
 
 ## mise.lock
 
-Committed, and created by `rig repoconfig` rather than by mise, which only maintains
+Committed, and created by `rig repo init` rather than by mise, which only maintains
 a lockfile that already exists.
 
 ```toml

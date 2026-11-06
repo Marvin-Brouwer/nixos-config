@@ -7,8 +7,8 @@ cd ~/repos/my-project
 rig repoconfig ts me@example.com
 ```
 
-The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
-`mise.toml` and `.vscode/extensions.json`.
+The preset is `empty`, `ts` or `dotnet`, and decides what goes into `mise.toml`
+and `.vscode/extensions.json`, plus a `Directory.Build.props` for `dotnet`.
 
 Entering a git repo without a `mise.toml` prints the command, so the name does
 not have to be remembered. It is a bash prompt hook rather than a git hook: git
@@ -26,12 +26,17 @@ Local work first, network last, so an interrupted run still leaves a usable repo
 3. runs `mise trust`
 4. creates `mise.lock`
 5. writes `.vscode/extensions.json` from the preset
-6. adds `mise.local.toml` to `.git/info/exclude`
-7. runs `mise install` and `mise lock --platform linux-x64,windows-x64`
-8. runs `rig vscode-sync`
+6. writes the preset's own files (`dotnet`: `Directory.Build.props`)
+7. adds `mise.local.toml` to `.git/info/exclude`
+8. runs `mise install` and `mise lock --platform linux-x64,windows-x64`
+9. runs `rig vscode-sync`
 
 Nothing is overwritten. Anything already present is kept and logged, so
 re-running is safe.
+
+For a repo you don't trust, add `--sandbox`. It writes a dev container and
+skips every step that would run the repo's own config on the host. See
+[sandbox.md](sandbox.md).
 
 ## Why it is a command
 
@@ -59,11 +64,11 @@ not turn up in other people's diffs. Only `mise.local.toml` is excluded;
 
 ## The presets
 
-| preset | mise.toml | extensions.json |
-| --- | --- | --- |
-| `empty` | no tools | empty |
-| `ts` | node, pnpm, typescript | the TypeScript set |
-| `dotnet` | dotnet | the C# set |
+| preset | mise.toml | extensions.json | other files |
+| --- | --- | --- | --- |
+| `empty` | no tools | empty | |
+| `ts` | node, pnpm, typescript | the TypeScript set | |
+| `dotnet` | dotnet | the C# set | `Directory.Build.props` with NuGet lock files ([why](examples/csharp.md#directorybuildprops)) |
 
 Each writes a `[tasks.setup]` so a fresh clone is `mise run setup`.
 

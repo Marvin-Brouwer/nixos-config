@@ -100,6 +100,9 @@ The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
 Nothing is overwritten. Anything already present is kept and logged, so
 re-running is safe. What each step is for is in [docs/repoconfig.md](docs/repoconfig.md).
 
+For a repo you don't trust, `--sandbox` sets it up as a dev container instead,
+with host credentials kept out. See [docs/sandbox.md](docs/sandbox.md).
+
 You do not have to remember the name. Entering a git repo that has no
 `mise.toml` prints it:
 

@@ -14,7 +14,8 @@
 #   * vscode-sync uses the presence of mise.toml to decide a directory is a
 #     managed repo, so without one a project gets no plugin sync either.
 #
-# Presets differ only in what goes into mise.toml and .vscode/extensions.json.
+# Presets differ in what goes into mise.toml and .vscode/extensions.json, plus
+# a Directory.Build.props for dotnet.
 #
 # Two outputs, wired up in configuration.nix:
 #
@@ -116,6 +117,97 @@ let
     '');
   };
 
+  # NuGet has no equivalent of pnpm's defaults: nothing holds back a version
+  # published an hour ago, and a package's build targets, analyzers and source
+  # generators run on every build, in the IDE too. A committed
+  # packages.lock.json at least stops a transitive dependency from moving
+  # without a diff. Locked mode only in CI, so a local restore can still update
+  # the lock file while a mismatch fails the pipeline instead of rewriting it.
+  # CI covers GitHub Actions and most others, TF_BUILD covers Azure Pipelines;
+  # MSBuild compares case-insensitively.
+  #
+  # Package source mapping is deliberately not here: with nuget.org as the only
+  # feed there is nothing to confuse. It earns its place once a private feed is
+  # added.
+  #
+  # Unlike .git/info/exclude, this is committed, so the comment in it is for the
+  # team rather than for me.
+  directoryBuildProps = pkgs.writeText "Directory.Build.props" ''
+    <Project>
+      <!-- Pin every package, transitive ones included, in packages.lock.json. Commit those files. -->
+      <PropertyGroup>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+        <RestoreLockedMode Condition="'$(CI)' == 'true' Or '$(TF_BUILD)' == 'true'">true</RestoreLockedMode>
+      </PropertyGroup>
+    </Project>
+  '';
+
+  # Preset-specific files beyond mise.toml and extensions.json, by repo path.
+  extraFiles = {
+    dotnet = { "Directory.Build.props" = directoryBuildProps; };
+  };
+
+  # --- sandbox: a dev container for a repo you do not trust ---
+  #
+  # The editor server, extensions, language servers, installs and tests all run
+  # inside it, and only the repo is mounted: no home, no /mnt/c, no interop, no
+  # Docker socket. Sandboxing only `pnpm install` would leave the editor running
+  # the same dependencies outside it. See docs/sandbox.md.
+  #
+  # The files are mine, not the project's, so they go in .git/info/exclude like
+  # mise.local.toml. The image and features are what `mise generate devcontainer`
+  # produces; mise then installs from the committed mise.toml and mise.lock, so
+  # the container gets the same versions as the host.
+  #
+  # Credential forwarding is switched off in the Windows user settings by
+  # programs/vscode.nix, because that is where Dev Containers reads it from. The
+  # two settings below are the editor's own git auth, which is per window and so
+  # can be set here. The attach check is the backstop that says so when any of
+  # it is not holding.
+  sandboxCheck = pkgs.writeText "check-sandbox.sh" ''
+    #!/bin/sh
+    # Runs on every attach. Warns when the editor forwarded a host credential
+    # into this container, which is the thing the container is here to prevent.
+    leak=0
+    warn() { printf '\033[1;31msandbox:\033[0m %s\n' "$1"; leak=1; }
+
+    [ -n "''${SSH_AUTH_SOCK:-}" ] && warn "an SSH agent is forwarded ($SSH_AUTH_SOCK)"
+    for sock in /tmp/vscode-ssh-auth-*.sock; do
+      [ -S "$sock" ] && warn "an SSH agent socket is present ($sock)"
+    done
+    [ -S "$HOME/.gnupg/S.gpg-agent" ] && warn "a GPG agent is forwarded"
+    helper="$(git config --get-all credential.helper 2>/dev/null)"
+    [ -n "$helper" ] && warn "git has a credential helper: $helper"
+    [ -n "''${VSCODE_GIT_ASKPASS_MAIN:-}" ] && warn "the editor's git askpass reaches terminals"
+    grep -qs credsStore "$HOME/.docker/config.json" && warn "Docker registry credentials are forwarded"
+    [ -S /var/run/docker.sock ] && warn "the Docker socket is mounted"
+    [ -d /mnt/c ] && warn "/mnt/c is visible"
+
+    if [ "$leak" -eq 0 ]; then
+      echo "sandbox: no forwarded credentials found"
+    else
+      echo "sandbox: see docs/sandbox.md in nixos-config"
+    fi
+  '';
+
+  devcontainerJson = lib.mapAttrs (name: exts:
+    pkgs.writeText "devcontainer-${name}.json" (builtins.toJSON {
+      name = "sandbox";
+      image = "mcr.microsoft.com/devcontainers/base:ubuntu";
+      features."ghcr.io/devcontainers-extra/features/mise:1" = { };
+      # The workspace path differs from the host's, so mise needs trusting again.
+      postCreateCommand = "mise trust && mise install && if mise tasks info setup >/dev/null 2>&1; then mise run setup; fi";
+      postAttachCommand = "sh .devcontainer/check-sandbox.sh";
+      customizations.vscode = {
+        extensions = [ "hverlin.mise-vscode" ] ++ exts;
+        settings = {
+          "github.gitAuthentication" = false;
+          "git.terminalAuthentication" = false;
+        };
+      };
+    })
+  ) recommendations;
+
   extensionsJson = lib.mapAttrs (name: exts:
     pkgs.writeText "extensions-${name}.json" (builtins.toJSON {
       recommendations = exts;
@@ -129,13 +221,13 @@ let
   descriptions = {
     empty  = "no tools, just the mise.toml and extensions.json skeletons";
     ts     = "node lts, pnpm, typescript; TS plugins; setup task runs pnpm install";
-    dotnet = "latest .NET SDK; C# plugin; setup task runs dotnet restore";
+    dotnet = "latest .NET SDK; C# plugin; NuGet lock files; setup task runs dotnet restore";
   };
   presets = lib.attrNames descriptions;
 
   # Plain text, shared by the command and the prompt hook below so the two
   # cannot drift apart.
-  usage = "usage: ${prefix} repoconfig <${lib.concatStringsSep "|" presets}> <email>";
+  usage = "usage: ${prefix} repoconfig <${lib.concatStringsSep "|" presets}> <email> [--sandbox]";
 
   # lib.fixedWidthString pads on the left, which right-aligns the names.
   listText = lib.concatMapStrings (name:
@@ -153,8 +245,12 @@ let
       2. mise.toml from the preset, then mise trust
       3. an empty mise.lock, so mise starts pinning versions
       4. .vscode/extensions.json from the preset
-      5. mise.local.toml in .git/info/exclude
-      6. mise install, mise lock, vscode-sync
+      5. preset files (dotnet: Directory.Build.props with NuGet lock files)
+      6. mise.local.toml in .git/info/exclude
+      7. mise install, mise lock, vscode-sync
+
+    --sandbox also writes .devcontainer/ (locally excluded), for a repo you do
+    not trust: open it with "Dev Containers: Reopen in Container".
 
     Nothing that exists is overwritten, so re-running is safe.
     --list shows the presets. Details: ~/nixos-config/docs/repoconfig.md
@@ -163,8 +259,17 @@ let
   repoconfig = pkgs.writeShellScriptBin "repoconfig" ''
     set -uo pipefail
 
-    PRESET="''${1:-}"
-    EMAIL="''${2:-}"
+    # --sandbox may go anywhere; the rest is positional.
+    SANDBOX=
+    ARGS=()
+    for arg in "$@"; do
+      case "$arg" in
+        --sandbox) SANDBOX=1 ;;
+        *) ARGS+=("$arg") ;;
+      esac
+    done
+    PRESET="''${ARGS[0]:-}"
+    EMAIL="''${ARGS[1]:-}"
 
     say()  { printf '   %s\n' "$*"; }
     made() { printf '   \033[1;32mcreated\033[0m %s\n' "$*"; }
@@ -180,7 +285,7 @@ let
         printf 'Presets:\n\n${listText}\n'
         exit 0 ;;
     ${lib.concatMapStrings (name: ''
-      ${name}) MISE_SRC=${miseToml.${name}}; EXT_SRC=${extensionsJson.${name}} ;;
+      ${name}) MISE_SRC=${miseToml.${name}}; EXT_SRC=${extensionsJson.${name}}; DEVCONTAINER_SRC=${devcontainerJson.${name}} ;;
     '') presets}
       *) die "${usage} (presets: ${prefix} repoconfig --list)" ;;
     esac
@@ -208,7 +313,14 @@ let
     fi
 
     # --- trust, before anything reads the config ---
-    mise trust >/dev/null 2>&1 && say "mise trust" || say "mise trust: nothing to do"
+    # Not for a sandbox. A trusted mise.toml can run code on entering the
+    # directory (env sources, hooks), and an untrusted repo may have brought its
+    # own. The container trusts it instead, where that code cannot reach home.
+    if [ -n "$SANDBOX" ]; then
+      say "mise trust: skipped, the container does it"
+    else
+      mise trust >/dev/null 2>&1 && say "mise trust" || say "mise trust: nothing to do"
+    fi
 
     # --- lockfile ---
     # mise will not create this itself, and stays silent when it is absent, so a
@@ -229,6 +341,23 @@ let
       made ".vscode/extensions.json"
     fi
 
+    # --- preset files ---
+    install_extra() {
+      if [ -e "$1" ]; then
+        kept "$1"
+      else
+        ${pkgs.coreutils}/bin/cp "$2" "$1"
+        ${pkgs.coreutils}/bin/chmod +w "$1"
+        made "$1"
+      fi
+    }
+    case "$PRESET" in
+    ${lib.concatMapStrings (name: ''
+      ${name}) ${lib.concatStrings (lib.mapAttrsToList (path: src:
+        "install_extra ${lib.escapeShellArg path} ${src}; ") extraFiles.${name})}: ;;
+    '') (lib.attrNames extraFiles)}
+    esac
+
     # --- local ignores ---
     # .git/info/exclude rather than .gitignore: personal tooling should not turn
     # up in other people's diffs. mise.toml and mise.lock are meant to be
@@ -240,6 +369,40 @@ let
     else
       printf '%s\n' "mise.local.toml" >> "$EXCLUDE"
       made "$EXCLUDE entry for mise.local.toml"
+    fi
+
+    # --- sandbox ---
+    # A repo with its own .devcontainer keeps it, and is not excluded either:
+    # that one is the project's, and whether it forwards anything is up to it.
+    if [ -n "$SANDBOX" ]; then
+      # Marks the repo for vscode-sync, which then leaves the host's plugins
+      # alone here: the repo's own extensions.json is as untrusted as the rest.
+      ${pkgs.git}/bin/git config --local repoconfig.sandbox true
+      say "repoconfig.sandbox: vscode-sync skips this repo"
+      if [ -f .devcontainer/check-sandbox.sh ]; then
+        kept ".devcontainer/ (sandbox)"
+      elif [ -e .devcontainer ]; then
+        kept ".devcontainer/ (the project's own; check it before trusting it as a sandbox)"
+      else
+        ${pkgs.coreutils}/bin/mkdir -p .devcontainer
+        ${pkgs.jq}/bin/jq . "$DEVCONTAINER_SRC" > .devcontainer/devcontainer.json
+        ${pkgs.coreutils}/bin/cp ${sandboxCheck} .devcontainer/check-sandbox.sh
+        ${pkgs.coreutils}/bin/chmod +w .devcontainer/check-sandbox.sh
+        made ".devcontainer/ (sandbox)"
+        if ${pkgs.gnugrep}/bin/grep -qxF ".devcontainer/" "$EXCLUDE" 2>/dev/null; then
+          kept "$EXCLUDE entry for .devcontainer/"
+        else
+          printf '%s\n' ".devcontainer/" >> "$EXCLUDE"
+          made "$EXCLUDE entry for .devcontainer/"
+        fi
+      fi
+    fi
+
+    # The sandbox stops here: every step below runs the repo's config on the
+    # host, which is exactly what it is for avoiding.
+    if [ -n "$SANDBOX" ]; then
+      printf '\n   Done. Open the repo in VS Code and run "Dev Containers: Reopen in Container".\n\n'
+      exit 0
     fi
 
     # --- resolve and lock, last ---

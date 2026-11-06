@@ -8,10 +8,12 @@ Every file a C# project uses to declare what it needs, and who reads it.
 | `mise.lock` | the exact resolved version | mise, on every machine |
 | `global.json` | the SDK version | the dotnet CLI natively |
 | `**/*.csproj` | package references | dotnet, NuGet |
+| `Directory.Build.props` | turning on NuGet lock files | MSBuild, for every project below it |
+| `**/packages.lock.json` | the exact resolved packages, with hashes | NuGet restore |
 | `.vscode/extensions.json` | the project's plugins | VSCode natively |
 
-Start with `rig repoconfig dotnet you@example.com`, which writes the first, second
-and last.
+Start with `rig repoconfig dotnet you@example.com`, which writes `mise.toml`,
+`mise.lock`, `Directory.Build.props` and `.vscode/extensions.json`.
 
 ## mise.toml
 
@@ -63,6 +65,35 @@ for pnpm. Generate it with `dotnet new globaljson`.
 
 `rollForward` controls how strict it is, if pinning an exact patch turns out to
 be too tight.
+
+## Directory.Build.props
+
+```xml
+<Project>
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CI)' == 'true' Or '$(TF_BUILD)' == 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>
+```
+
+NuGet has none of the supply-chain defaults pnpm has. Nothing holds back a
+version published an hour ago, and a package's build targets, analyzers and
+source generators run on every build, in the IDE too. A lock file is the least
+you can do: every package, transitive ones included, is pinned with a content
+hash, so nothing changes version without showing up in a diff.
+
+The first restore writes a `packages.lock.json` next to each project. Commit
+those. Locally a restore still updates them when a reference changes; in CI
+(`CI=true`, or `TF_BUILD` on Azure Pipelines) a mismatch fails with `NU1004`
+instead of quietly rewriting the file.
+
+Package source mapping is left out on purpose. It protects against a package
+being served from the wrong feed, which cannot happen with nuget.org as the only
+one. Add it together with the first private feed.
+
+If the repo already has a `Directory.Build.props`, repoconfig keeps it and you
+add the two properties by hand.
 
 ## .vscode/extensions.json
 

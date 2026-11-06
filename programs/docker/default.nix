@@ -1,9 +1,9 @@
 # -----------------------------------------------------------------
-# `docker` -- stop the Docker daemon, or see whether it runs.
+# `docker` -- start, stop or restart the Docker daemon, or see whether it runs.
 #
 # The daemon is socket-activated (enableOnBoot = false in configuration.nix):
-# the first `docker` command starts it, so there is no start here. Stopping is
-# the part worth a command. An idle daemon, and whatever containers it still
+# the first `docker` command starts it, so start and restart are conveniences.
+# Stopping is the part worth a command. An idle daemon, and whatever containers it still
 # runs, holds on to memory the WSL VM does not hand back, and stopping only
 # docker.service is undone by the next CLI call through docker.socket. This
 # stops both, then re-arms the socket, so the next `docker` command still

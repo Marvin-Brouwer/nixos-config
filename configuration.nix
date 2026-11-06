@@ -120,9 +120,9 @@ let
           };
           docker = {
             package = dockerDaemon;
-            summary = "stop the Docker daemon to free memory, or see if it runs";
-            usage = "<stop|status>";
-            complete = [ "stop" "status" ];
+            summary = "start, stop or restart the Docker daemon, or see if it runs";
+            usage = "<start|stop|restart|status>";
+            complete = [ "start" "stop" "restart" "status" ];
           };
           playwright = {
             package = playwright;

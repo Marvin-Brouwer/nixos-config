@@ -33,8 +33,8 @@ trust them if anything here looks out of date.
   `update` also checks out `main`. Run them only when the user asks. To check
   that a change to the config builds without switching, use
   `nix build /etc/nixos#nixosConfigurations.nix-wsl.config.system.build.toplevel --no-link`.
-- `rig tool docker stop` stops every running container with the daemon. Ask
-  first. `rig tool docker status` is read-only.
+- `rig tool docker stop` and `restart` stop every running container with the
+  daemon. Ask first. `rig tool docker status` is read-only.
 - `rig repo scratch` opens an interactive shell, so don't run it from an agent.
 - `rig sys doctor`, `rig sys compact --check` and `rig sys update --status` are
   read-only. They're the safe first step when something about the machine

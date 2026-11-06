@@ -119,7 +119,7 @@ rig config build          # build this checkout's branch and switch to it
 rig config update         # back to main, pull, rebuild if anything changed
 rig tool vscode-sync      # re-check this repo's VSCode plugins
 rig tool playwright       # FHS sandbox for browsers
-rig tool docker stop      # stop the Docker daemon to free memory
+rig tool docker stop      # stop the Docker daemon to free memory; start, restart, status
 ```
 
 Claude Code knows them too. The config installs a user skill at

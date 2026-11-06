@@ -1,0 +1,15 @@
+# Dependabot keeps the flake inputs moving between `rig sys update` runs: one
+# PR per input that has a newer revision on its branch. It only bumps
+# flake.lock and never edits the refs in flake.nix, so nixpkgs stays on
+# nixos-26.05 until that line is changed by hand. CI (check.yml) builds each PR.
+#
+# Merging one is the same as choosing that input in `rig sys update`; the
+# machine still only changes on the next `rig config update`.
+version: 2
+updates:
+  - package-ecosystem: "nix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "flake.lock"

@@ -54,8 +54,8 @@ let
         mise
         # ...but keep a working node here too, so the sandbox is still
         # useful as break-glass in a repo that has no mise.toml.
-        nodejs_24
-        pnpm
+        nodejs_26
+        pnpm_12
         cacert
         curl
         git

@@ -111,12 +111,32 @@ loadKernelModules=kvm_intel
 sparseVhd=true
 ```
 
-Networking is left on the default NAT mode. Windows still reaches WSL on
-`localhost`; mirrored mode is only worth it when WSL has to reach a service
-on Windows' `localhost` or other machines need WSL's ports.
-
 `rig sys doctor` warns if the disk isn't sparse, so you'll hear about it if
 this step was skipped.
+
+### Dev servers from other devices
+
+Networking stays on the default NAT mode. Windows reaches a dev server in WSL
+on `localhost`, but nothing else on the LAN can: Windows only forwards
+`localhost` into the VM, so the "Network" URLs Vite prints aren't routable off
+the machine. Mirrored mode (`networkingMode=mirrored`) would fix that, but it
+caused other problems here, so it's left off.
+
+To open a dev server on a phone, use a Cloudflare quick tunnel. It needs no
+account, admin rights or firewall rule:
+
+```bash
+nix run nixpkgs#cloudflared -- tunnel --url http://localhost:5173
+```
+
+It prints a `https://<random>.trycloudflare.com` URL that works from any
+device, and stops when you hit Ctrl+C. Traffic goes through Cloudflare, so
+don't use it for anything you wouldn't put on the internet. Vite rejects
+unknown hosts, so allow the tunnel's domain in `vite.config.ts`:
+
+```ts
+server: { allowedHosts: ['.trycloudflare.com'] }
+```
 
 ## One prefix for everything
 

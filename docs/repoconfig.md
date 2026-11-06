@@ -1,4 +1,4 @@
-# repoconfig
+# `rig repo init`
 
 One command to set a repo up for this machine.
 
@@ -72,7 +72,7 @@ not turn up in other people's diffs. Only `mise.local.toml` is excluded;
 
 Each writes a `[tasks.setup]` so a fresh clone is `mise run setup`.
 
-The plugin lists keep their comments in `programs/repoconfig/presets/<name>/` and
+The plugin lists keep their comments in `programs/repo/init/presets/<name>/` and
 lose them on the way into a repo. Notes about what I might drop later are mine
 and have no business in a repo other people read.
 

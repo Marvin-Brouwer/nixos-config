@@ -1,4 +1,4 @@
-# Doctor
+# `rig sys doctor`
 
 One command for "something is off":
 
@@ -73,6 +73,6 @@ it would read its config on the host, which is what the
 
 ## Adding a check
 
-The checks are in `programs/doctor/doctor.d/`, one file per area. A check is a
+The checks are in `programs/sys/doctor/doctor.d/`, one file per area. A check is a
 function that calls `ok`, `warn` or `fail` with a line and an optional hint.
 Then `main` in `doctor.sh` calls it under its section.

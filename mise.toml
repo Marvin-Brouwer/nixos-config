@@ -1,5 +1,5 @@
 # Marks this repo as one the plugin sync manages, so entering it keeps the
-# VSCode extensions in programs/vscode-plugins.nix installed.
+# VSCode extensions in programs/tool/vscode-sync/plugins.nix installed.
 #
 # No tools: nothing here needs a runtime. The nix files are built by
 # nixos-rebuild, which comes from the system rather than from mise.
@@ -12,4 +12,4 @@
 # locked nixpkgs, so there is still no tool to install or pin here.
 [tasks.lint]
 description = "shellcheck the scripts under programs/"
-run = "nix shell --inputs-from . nixpkgs#shellcheck --command shellcheck --external-sources --source-path=SCRIPTDIR programs/*/*.sh"
+run = "nix shell --inputs-from . nixpkgs#shellcheck --command shellcheck --external-sources --source-path=SCRIPTDIR programs/*/*/*.sh"

@@ -110,7 +110,7 @@ project's copy does not look for.
 ```
 
 The standard file. VSCode prompts anyone who opens the folder, and `rig tool vscode-sync`
-unions it with the base list in `programs/vscode-plugins.nix`, minus anything in
+unions it with the base list in `programs/tool/vscode-sync/plugins.nix`, minus anything in
 `unwantedRecommendations`.
 
 Put project plugins here and personal ones in the base list. Anything in neither

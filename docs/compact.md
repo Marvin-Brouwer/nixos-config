@@ -1,4 +1,4 @@
-# Compact
+# `rig sys compact`
 
 Nothing on this machine shrinks on its own. Every rebuild leaves a system
 generation behind, every `nix shell` leaves store paths, Docker keeps every
@@ -27,7 +27,7 @@ Docker is pruned only when its daemon is already running. Asking it anything
 would start it, and a daemon that isn't running has nothing new to prune.
 `docker system prune -a` by hand also removes tagged images you aren't using.
 
-14 days is `keepDays` in `programs/compact/default.nix`. Deleting a generation
+14 days is `keepDays` in `programs/sys/compact/default.nix`. Deleting a generation
 means you can't roll back to it, so the run asks first and says how many.
 
 ## Getting the space back to Windows
@@ -57,7 +57,7 @@ which distro it is in.
 ## The notice
 
 A timer measures what a run would free and caches the answer, the same way
-the [sysupdate](sysupdate.md) check does. Every new shell prints it:
+the [`rig sys update`](sysupdate.md) check does. Every new shell prints it:
 
 ```txt
 This machine could use a clean-up:

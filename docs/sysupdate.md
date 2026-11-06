@@ -1,4 +1,4 @@
-# sysupdate
+# `rig sys update`
 
 One command to see what a system update would change, and apply it.
 

@@ -21,46 +21,43 @@ and [docs/examples/csharp.md](docs/examples/csharp.md).
 ~/
 ├─ nixos-config/
 │   ├─ flake.nix                    # entry point
-│   ├─ configuration.nix            # the NixOS system
+│   ├─ configuration.nix            # the NixOS system, and the rig command tree
+│   ├─ setup.sh                     # one-time bootstrap, see Install
 │   ├─ lib/
+│   │   ├─ shell-script.nix         # turns the .sh files into commands
+│   │   ├─ highlight.sh             # colours `commands` in messages
 │   │   ├─ config-repo.sh           # where /etc/nixos points, for the commands
-│   │   ├─ nix-ld-libs.nix          # libraries that let vendor binaries run
-│   │   └─ shell-script.nix         # turns the .sh files into commands
-│   ├─ programs/
-│   │   ├─ rig.nix                  # the `rig` prefix for the commands below
+│   │   └─ nix-ld-libs.nix          # libraries that let vendor binaries run
+│   ├─ programs/                    # one directory per command: programs/<group>/<command>
+│   │   ├─ rig.nix                  # the `rig` prefix: dispatch, help, completion
 │   │   ├─ mise.toml                # installed to /etc/mise/config.toml
-│   │   ├─ repoconfig/              # one-shot repo setup command, and its hint
-│   │   │   ├─ default.nix          #   wiring, and what each part is for
-│   │   │   ├─ presets/             #   one directory per preset
-│   │   │   ├─ sandbox.nix          #   --sandbox: the dev container
-│   │   │   ├─ repoconfig.d/        #   the command's steps, sourced in order
-│   │   │   └─ *.sh                 #   the command, prompt hook, attach check
-│   │   ├─ sysupdate/               # update command, check, shell notice
-│   │   │   ├─ default.nix
-│   │   │   ├─ *.sh                 #   one script per command, plus helpers
-│   │   │   ├─ sysupdate.d/         #   sysupdate's steps, sourced in order
-│   │   │   └─ diff.py              #   the closure diff behind the notice
 │   │   ├─ claude-skill/            # the Claude Code skill that knows rig
-│   │   ├─ compact/                 # disk clean-up command, check, shell notice
-│   │   ├─ doctor/                  # the health check, doctor.d/ per area
-│   │   ├─ scratch/                 # throwaway repo with a preset
-│   │   ├─ config/                  # build a branch of this repo, or update to main
-│   │   ├─ vscode/                  # the plugin sync command
-│   │   │   ├─ default.nix
-│   │   │   ├─ sync.sh
-│   │   │   ├─ sync.d/              #   its steps, sourced in order
-│   │   │   └─ extensions-json.py   #   reads a JSONC extensions.json
-│   │   └─ vscode-plugins.nix       # my base plugin list
-│   ├─ tools/
-│   │   └─ playwright.nix           # FHS fallback sandbox
-│   └─ docs/
-│       └─ examples/                # per-stack walkthroughs
+│   │   ├─ sys/                     # rig sys: the machine itself
+│   │   │   ├─ update/              #   updates: command, timer check, shell notice
+│   │   │   ├─ compact/             #   disk clean-up: command, timer check, notice
+│   │   │   └─ doctor/              #   the health check, doctor.d/ per area
+│   │   ├─ repo/                    # rig repo: the repo you are in
+│   │   │   ├─ init/                #   one-shot repo setup, its hint and presets/
+│   │   │   └─ scratch/             #   throwaway repo with a preset
+│   │   ├─ config/                  # rig config: this repo
+│   │   │   ├─ build/               #   build the checked-out branch and switch
+│   │   │   └─ update/              #   back to main, pull, build if changed
+│   │   └─ tool/                    # rig tool: helpers for project tooling
+│   │       ├─ vscode-sync/         #   the plugin sync, and plugins.nix, my base list
+│   │       ├─ playwright/          #   FHS fallback sandbox for browsers
+│   │       └─ docker/              #   start, stop, restart the daemon
+│   ├─ docs/                        # one page per command, plus examples/
+│   └─ .github/workflows/check.yml  # CI: lint, and build the whole system
 └─ repos/
     └─ my-project/
         ├─ mise.toml                # this project's tools
         ├─ mise.lock                # the exact versions, committed
         └─ .vscode/extensions.json  # this project's plugins
 ```
+
+Each command directory has a `default.nix` saying why it exists and what each
+file is for. A long script is split into steps under `<script>.d/`, sourced in
+order, with a `main` at the bottom of the script calling them by name.
 
 The shell scripts under `programs/` are real `.sh` files. Nix gives them their
 tools on PATH and their values as variables (`lib/shell-script.nix`), and
@@ -88,9 +85,9 @@ wsl
 ```
 
 Without the sparse flag the `.vhdx` only ever grows: space freed inside WSL,
-by `rig sys compact` for instance, stays allocated on the Windows side. It can only
-be set while WSL is shut down, so `setup.sh` prints it rather than running it,
-with your distro's name filled in. To have every new distro start out sparse,
+by `rig sys compact` for instance, stays allocated on the Windows side. It can
+only be set while WSL is shut down, so `setup.sh` prints it rather than running
+it, with your distro's name filled in. To have every new distro start out sparse,
 put this in `%UserProfile%\.wslconfig` before importing:
 
 ```ini
@@ -98,8 +95,8 @@ put this in `%UserProfile%\.wslconfig` before importing:
 sparseVhd=true
 ```
 
-`rig sys doctor` warns if the disk isn't sparse, so you'll hear about it if this
-step was skipped.
+`rig sys doctor` warns if the disk isn't sparse, so you'll hear about it if
+this step was skipped.
 
 ## One prefix for everything
 
@@ -126,8 +123,9 @@ Claude Code knows them too. The config installs a user skill at
 `~/.claude/skills/rig` (`programs/claude-skill/`) listing every command and doc
 page. It is generated from the same list as `rig --help`, so it can't drift.
 
-Tab completion covers the command names and their first argument. Only `rig`
-is on PATH; the commands are not installed under their own names.
+Tab completion covers the groups, the commands in them and each command's first
+argument. Only `rig` is on PATH; the commands are not installed under their own
+names.
 The prefix itself is `devPrefix` in `configuration.nix`.
 
 ## Setting up a project
@@ -224,26 +222,31 @@ guessing when the tree is dirty or `main` has diverged. See
 
 ## Housekeeping
 
-`rig sys compact` removes system generations older than 14 days, the store paths
-nothing uses any more, Docker's leftovers and mise tool versions no project asks
+`rig sys compact` removes system generations older than 14 days, the store
+paths nothing uses any more, Docker's leftovers and mise tool versions no project asks
 for, then trims the disk so the WSL `.vhdx` can shrink. It shows what it would
 remove and asks first. A daily timer measures whether a run is worth it, and
 when it is, new shells say so, but only when sysupdate has nothing to say. See
 [docs/compact.md](docs/compact.md).
 
-`rig sys doctor` checks every piece this setup depends on (nix-ld, interop, Docker,
-mise, the timers, the repo you're in) and says per piece whether it's fine and
-what to do if not. See [docs/doctor.md](docs/doctor.md).
+`rig sys doctor` checks every piece this setup depends on (nix-ld, interop,
+Docker, mise, the timers, the repo you're in) and says per piece whether it's
+fine and what to do if not. See [docs/doctor.md](docs/doctor.md).
 
-`rig repo scratch [preset]` makes a temp repo, runs repoconfig in it and drops you in
-a shell there. Leaving the shell offers to delete it. See
+`rig repo scratch [preset]` makes a temp repo, runs `rig repo init` in it and
+drops you in a shell there. Leaving the shell offers to delete it. See
 [docs/scratch.md](docs/scratch.md).
+
+`rig tool docker stop` stops the Docker daemon, its socket and every container,
+which gives the WSL VM its memory back. The daemon is socket-activated, so the
+next `docker` command starts it again; `start`, `restart` and `status` are
+there too. See [docs/docker.md](docs/docker.md).
 
 ## VSCode plugins
 
 Two lists are unioned when you enter a project:
 
-- `programs/vscode-plugins.nix` here, the ones I want everywhere
+- `programs/tool/vscode-sync/plugins.nix` here, the ones I want everywhere
 - `<project>/.vscode/extensions.json`, the project's own, which is the standard
   file VSCode already prompts contributors to install
 
@@ -260,8 +263,8 @@ you wait for it. Most entries hit the hash fast path and return instantly; it
 only blocks when the plugin set actually changed, which with one shared set means
 when you move between repos that want different plugins.
 
-`rig tool vscode-sync --detach` is the alternative. It backgrounds the sync and writes to
-`~/.config/nixos-vscode-sync/last.log` instead of printing, because a background
+`rig tool vscode-sync --detach` is the alternative. It backgrounds the sync and
+writes to `~/.config/nixos-vscode-sync/last.log` instead of printing, because a background
 job writing over a prompt that has already been drawn leaves the shell looking
 hung until you press enter.
 
@@ -270,7 +273,7 @@ hung until you press enter.
 > neither list gets uninstalled, including extensions VSCode ships with.
 > `ms-vscode-remote.remote-wsl` is the one exception. It is machine-specific
 > infrastructure rather than a preference, so it is not in the base list;
-> `programs/vscode/sync.sh` adds it when it sees a Windows side to talk to, after the
+> `programs/tool/vscode-sync/sync.sh` adds it when it sees a Windows side to talk to, after the
 > unwanted filter, because a project vetoing it would leave an editor that cannot
 > open a WSL folder.
 

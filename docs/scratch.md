@@ -1,4 +1,4 @@
-# Scratch
+# `rig repo scratch`
 
 A throwaway repo for trying something out in thirty seconds, without first
 deciding where it should live:
@@ -15,7 +15,7 @@ there, so your prompt and the mise hook come along. When you `exit`, it asks
 whether to delete the directory. The default is yes. `--keep` skips the
 question and keeps it.
 
-Since it's an ordinary repoconfig run, you get the preset's `mise.toml`,
+Since it's an ordinary `rig repo init` run, you get the preset's `mise.toml`,
 `mise.lock`, plugins and `setup` task, the same as a real project. The git
 identity is `scratch@localhost`, because nothing pushes from a scratch repo.
 

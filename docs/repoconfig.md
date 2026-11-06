@@ -4,7 +4,7 @@ One command to set a repo up for this machine.
 
 ```bash
 cd ~/repos/my-project
-repoconfig ts me@example.com
+rig repoconfig ts me@example.com
 ```
 
 The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
@@ -28,7 +28,7 @@ Local work first, network last, so an interrupted run still leaves a usable repo
 5. writes `.vscode/extensions.json` from the preset
 6. adds `mise.local.toml` to `.git/info/exclude`
 7. runs `mise install` and `mise lock --platform linux-x64,windows-x64`
-8. runs `vscode-sync`
+8. runs `rig vscode-sync`
 
 Nothing is overwritten. Anything already present is kept and logged, so
 re-running is safe.

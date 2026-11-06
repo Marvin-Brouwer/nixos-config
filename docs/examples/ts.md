@@ -10,7 +10,7 @@ Every file a TypeScript project uses to declare what it needs, and who reads it.
 | `.vscode/extensions.json` | the project's plugins | VSCode natively |
 | `playwright.config.ts` | which browsers the suite uses | playwright |
 
-Start with `repoconfig ts you@example.com`, which writes the first, second and
+Start with `rig repoconfig ts you@example.com`, which writes the first, second and
 fourth. The rest come from the project.
 
 ## mise.toml
@@ -45,7 +45,7 @@ an npm CLI to install.
 
 ## mise.lock
 
-Committed, and not written by hand. `repoconfig` creates it, because mise will
+Committed, and not written by hand. `rig repoconfig` creates it, because mise will
 not: it only maintains a lockfile that already exists, and says nothing when
 there is none.
 
@@ -109,7 +109,7 @@ project's copy does not look for.
 }
 ```
 
-The standard file. VSCode prompts anyone who opens the folder, and `vscode-sync`
+The standard file. VSCode prompts anyone who opens the folder, and `rig vscode-sync`
 unions it with the base list in `programs/vscode-plugins.nix`, minus anything in
 `unwantedRecommendations`.
 
@@ -127,5 +127,5 @@ Playwright works with nothing set per project: `programs.nix-ld` makes the
 downloaded browsers runnable, and `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS` is
 set system-wide because Playwright refuses to recognise NixOS otherwise.
 
-If a browser will not launch, `playwright-fhs` is a sandbox where the downloaded
+If a browser will not launch, `rig playwright` is a sandbox where the downloaded
 binaries run unmodified. It has never been needed for chromium.

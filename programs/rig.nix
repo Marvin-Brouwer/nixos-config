@@ -1,5 +1,6 @@
 # -----------------------------------------------------------------
-# `rig` (the name is devPrefix in configuration.nix) -- one prefix for every command this setup adds.
+# `rig` -- the one entry point for every command this setup adds. The name is
+# devPrefix in configuration.nix.
 #
 # They are few and used rarely, which is exactly the combination that makes
 # their names hard to remember. So there is one name to remember instead:
@@ -8,9 +9,9 @@
 #   rig <command> [args...]     runs it, args passed through untouched
 #   rig <command> --help        that command's own help page
 #
-# The commands stay on PATH under their own names as well. `rig` only execs
-# them, so nothing that calls `sysupdate` directly (the shell notice, muscle
-# memory) has to change.
+# The commands are not on PATH under their own names. `rig` execs them by
+# store path, and so does anything else that calls one (the mise enter hook,
+# repoconfig running vscode-sync).
 #
 # Each entry is the package, a usage line and one sentence on when to reach for
 # it. `help` is for a command that has no --help of its own; `rig` prints it

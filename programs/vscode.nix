@@ -22,7 +22,7 @@
 # installs and uninstalls the difference each time.
 # -----------------------------------------------------------------
 
-{ pkgs, lib }:
+{ pkgs, lib, prefix }:
 
 let
   basePlugins = import ./vscode-plugins.nix;
@@ -48,7 +48,7 @@ let
     case "''${1:-}" in
       -h|--help)
         ${pkgs.coreutils}/bin/cat <<'HELP'
-    usage: vscode-sync [--wait|--detach]
+    usage: ${prefix} vscode-sync [--wait|--detach]
 
     Makes the installed VSCode plugins (Windows and WSL side) equal the base list
     in programs/vscode-plugins.nix plus this repo's .vscode/extensions.json.

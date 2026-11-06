@@ -37,13 +37,20 @@ let
     vulnix
   ];
 
-  vscode = import ./programs/vscode.nix { inherit pkgs lib; };
-  repoconfig = import ./programs/repoconfig.nix { inherit pkgs lib; prefix = devPrefix; };
-  # `rig` is the one name to remember; see programs/rig.nix. Every command this
-  # repo builds is listed here, so a new one is an entry rather than a name to
-  # forget.
-  # The prefix itself. Renaming it is this one string.
+  # The one command this repo puts on PATH. Everything below is reached through
+  # it (`rig sysupdate`, `rig repoconfig ...`), so there is a single name to
+  # remember and `rig --help` to fall back on. Renaming it is this one string.
   devPrefix = "rig";
+
+  vscode = import ./programs/vscode.nix { inherit pkgs lib; prefix = devPrefix; };
+  repoconfig = import ./programs/repoconfig.nix {
+    inherit pkgs lib;
+    prefix = devPrefix;
+    vscodeSync = vscode;
+  };
+
+  # Every command this repo builds is an entry here, which is the only way it
+  # becomes reachable. See programs/rig.nix.
   rig = import ./programs/rig.nix {
     inherit pkgs lib;
     prefix = devPrefix;
@@ -78,7 +85,7 @@ let
           Opens a bash shell in an FHS sandbox with the browser libraries, mise,
           node and pnpm, for when nix-ld is not enough for a browser. Arguments
           go to that bash, so -c 'pnpm exec playwright test' runs one command
-          and exits. Same as playwright-fhs.
+          and exits.
         '';
       };
     };
@@ -86,6 +93,7 @@ let
   playwright = import ./tools/playwright.nix { inherit pkgs lib; };
   sysupdate = import ./programs/sysupdate.nix {
     inherit pkgs lib hostName isWsl;
+    prefix = devPrefix;
     # git comes from programs.git rather than the list above, so it is named
     # here explicitly. Otherwise the one package most worth seeing a version
     # bump for would be the one the notice never mentions.
@@ -112,22 +120,11 @@ in
   # lives here is the machine itself, plus anything needed before you are
   # inside a project at all. The upstream half is systemTools above.
   environment.systemPackages = systemTools ++ [
-    # VSCode plugin sync.
-    vscode
-
-    # One-shot repo setup: git identity, mise.toml, trust, lockfile, plugins.
-    # The hint that names it on entering a repo is in the shell init below.
-    repoconfig.repoconfig
-
-    # One prefix for all of the above: `rig --help`.
+    # The commands this repo builds, all behind one name: repo setup, system
+    # updates, VSCode plugin sync and the Playwright sandbox. `rig --help`.
+    # They are deliberately not on PATH under their own names; the mise hook,
+    # the shell notice and the systemd unit reference them by store path.
     rig.package
-
-    # Break-glass FHS sandbox for when nix-ld does not cover a browser.
-    playwright
-
-    # See what is pending and apply it. The check and the shell notice are
-    # wired up below and referenced by store path, so they need no PATH entry.
-    sysupdate.sysupdate
   ];
 
   # git-lfs is enabled system-wide because it is a general footgun, not a
@@ -181,7 +178,11 @@ in
   # so it stays readable and greppable. Project tooling is not declared in it;
   # each repo carries its own mise.toml, because a version inherited from a
   # parent config never lands in that project's mise.lock.
-  environment.etc."mise/config.toml".source = ./programs/mise.toml;
+  # The one substitution is the enter hook's store path, since vscode-sync is not
+  # on PATH under its own name.
+  environment.etc."mise/config.toml".source = pkgs.replaceVars ./programs/mise.toml {
+    vscodeSync = "${vscode}/bin/vscode-sync";
+  };
 
   # Activation belongs in the system config rather than a hand-written shell
   # rc, so the hook is active on every terminal with no manual setup.

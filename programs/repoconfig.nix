@@ -24,7 +24,7 @@
 #                moment the name is needed and the moment it is forgotten
 # -----------------------------------------------------------------
 
-{ pkgs, lib, prefix }:
+{ pkgs, lib, prefix, vscodeSync }:
 
 let
   gitUserName = "Marvin Brouwer";
@@ -135,7 +135,7 @@ let
 
   # Plain text, shared by the command and the prompt hook below so the two
   # cannot drift apart.
-  usage = "usage: repoconfig <${lib.concatStringsSep "|" presets}> <email>";
+  usage = "usage: ${prefix} repoconfig <${lib.concatStringsSep "|" presets}> <email>";
 
   # lib.fixedWidthString pads on the left, which right-aligns the names.
   listText = lib.concatMapStrings (name:
@@ -144,8 +144,8 @@ let
 
   helpText = ''
     ${usage}
-           repoconfig --list
-           repoconfig --help
+           ${prefix} repoconfig --list
+           ${prefix} repoconfig --help
 
     Sets up the git repo you are in for this machine:
 
@@ -182,7 +182,7 @@ let
     ${lib.concatMapStrings (name: ''
       ${name}) MISE_SRC=${miseToml.${name}}; EXT_SRC=${extensionsJson.${name}} ;;
     '') presets}
-      *) die "${usage} (presets: repoconfig --list)" ;;
+      *) die "${usage} (presets: ${prefix} repoconfig --list)" ;;
     esac
     [ -n "$EMAIL" ] || die "${usage}"
 
@@ -254,7 +254,7 @@ let
     # inside this script; calling it directly does the same job. The repo has a
     # mise.toml and is trusted by now, so the guard lets it through.
     echo
-    vscode-sync
+    ${vscodeSync}/bin/vscode-sync
 
     printf '\n   Done.\n\n'
   '';
@@ -296,7 +296,7 @@ let
       [ -f "$root/mise.toml" ] || [ -f "$root/.mise.toml" ] && return
       [ "$(${pkgs.git}/bin/git -C "$root" config --bool repoconfig.skip 2>/dev/null)" = true ] && return
 
-      printf '\033[1;33mThis repo is not set up yet, run:\033[0m %s\n' "${prefix} ${lib.removePrefix "usage: " usage}"
+      printf '\033[1;33mThis repo is not set up yet, run:\033[0m %s\n' "${lib.removePrefix "usage: " usage}"
       printf '   (${prefix} --help lists every command on this machine)\n'
     }
     PROMPT_COMMAND="__repoconfig_hint''${PROMPT_COMMAND:+;$PROMPT_COMMAND}"

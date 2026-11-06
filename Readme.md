@@ -66,7 +66,7 @@ wsl
 
 ```bash
 cd ~/repos/my-project
-repoconfig ts me@example.com
+rig repoconfig ts me@example.com
 ```
 
 You do not have to remember the name. Entering a git repo that has no
@@ -89,11 +89,11 @@ name to remember:
 rig --help                 # every command, one line each
 rig repoconfig --help      # that command's own help page
 rig repoconfig --list      # the presets
-rig sysupdate              # same as sysupdate
+rig sysupdate              # see and apply system updates
 ```
 
-Tab completion covers the command names and their first argument. The bare
-names (`repoconfig`, `sysupdate`, `vscode-sync`, `playwright-fhs`) still work.
+Tab completion covers the command names and their first argument. `rig` is the
+only one of these on PATH: the commands are not installed under their own names.
 The prefix itself is `devPrefix` in `configuration.nix`.
 
 The preset is `empty`, `ts` or `dotnet`, and only decides what goes into
@@ -118,7 +118,7 @@ bumps it when you decide to.
 > [!IMPORTANT]
 > mise never creates `mise.lock` itself. It only maintains one that already
 > exists, and says nothing when there is none, so a repo without the file
-> silently gets no version pinning at all. That is the main thing `repoconfig`
+> silently gets no version pinning at all. That is the main thing `rig repoconfig`
 > is for. By hand it is `touch mise.lock && mise install && mise lock`.
 
 > [!NOTE]
@@ -138,15 +138,15 @@ You have pending system updates!
    ...
  + 143 other packages in the system closure
 
- run sysupdate to update
+ run rig sysupdate to update
 ```
 
 ```bash
-sysupdate          # bump the inputs, build, show the diff, apply or stage
-sysupdate --audit  # scan the running system for known vulnerabilities
+rig sysupdate          # bump the inputs, build, show the diff, apply or stage
+rig sysupdate --audit  # scan the running system for known vulnerabilities
 ```
 
-`sysupdate` asks about `nixpkgs` and `nixos-wsl` separately, builds the new
+`rig sysupdate` asks about `nixpkgs` and `nixos-wsl` separately, builds the new
 system without touching the running one, shows `nvd diff` for the exact old to
 new versions, and then asks: apply now, stage for the next start, or discard.
 Applying is `nixos-rebuild switch`; staging is `nixos-rebuild boot`, which takes
@@ -170,8 +170,8 @@ Then anything in that file's `unwantedRecommendations` is removed, and the resul
 is installed on both the Windows and WSL sides.
 
 ```bash
-vscode-sync          # force a re-check, in the foreground
-vscode-sync --wait   # wait for one the mise hook started
+rig vscode-sync          # force a re-check, in the foreground
+rig vscode-sync --wait   # wait for one the mise hook started
 ```
 
 Entering a project runs the sync in the foreground, so it prints what it did and
@@ -179,7 +179,7 @@ you wait for it. Most entries hit the hash fast path and return instantly; it
 only blocks when the plugin set actually changed, which with one shared set means
 when you move between repos that want different plugins.
 
-`vscode-sync --detach` is the alternative. It backgrounds the sync and writes to
+`rig vscode-sync --detach` is the alternative. It backgrounds the sync and writes to
 `~/.config/nixos-vscode-sync/last.log` instead of printing, because a background
 job writing over a prompt that has already been drawn leaves the shell looking
 hung until you press enter.
@@ -202,7 +202,7 @@ hung until you press enter.
 > Creating one means opening a window, which a `cd` has no business doing.
 
 The sync only runs inside a trusted mise project, so a repo needs a `mise.toml`
-and one `mise trust` first. `repoconfig` does both.
+and one `mise trust` first. `rig repoconfig` does both.
 
 ## Why vendor binaries run at all
 

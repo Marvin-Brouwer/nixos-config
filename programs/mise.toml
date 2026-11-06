@@ -32,7 +32,7 @@ all_compile = false
 #
 # This only maintains a mise.lock that already exists. mise does not create one,
 # so a repo with no lockfile silently gets no pinning, which is the failure this
-# setting is here to prevent. `repoconfig` creates the file when setting a repo
+# setting is here to prevent. `rig repoconfig` creates the file when setting a repo
 # up; by hand it is `touch mise.lock && mise install`.
 lockfile = true
 
@@ -49,6 +49,9 @@ idiomatic_version_file_enable_tools = []
 #
 # Runs in the foreground, so entering a project waits for the sync and shows
 # what it did. Most entries hit the hash fast path and return instantly; it only
-# blocks when the plugin set actually changed. `vscode-sync --detach` is the
+# blocks when the plugin set actually changed. `rig vscode-sync --detach` is the
 # alternative, which logs instead of printing and does not block.
-enter = "vscode-sync"
+#
+# The value is a placeholder for the store path, filled in by configuration.nix.
+# It is not on PATH under its own name; by hand it is `rig vscode-sync`.
+enter = "@vscodeSync@"

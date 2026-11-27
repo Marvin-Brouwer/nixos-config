@@ -2,7 +2,7 @@
   description = "NixOS-WSL system configuration";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.11";
     # Import the WSL module from the nixos-wsl flake (makes the `wsl` attribute set available).
     nixos-wsl.url   = "github:nix-community/nixos-wsl/release-26.05";
   };
